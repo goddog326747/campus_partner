@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.192.128:13306/campus_partner?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useSSL=true
+    username: root
+    password: "123456"
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: CampusPartner_HikariCP
+      minimum-idle: 15
+      idle-timeout: 180000
+      maximum-pool-size: 25
+      auto-commit: true
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+# MyBatis Plus Configuration
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # mapper-locations: classpath:/mapper/*.xml # Uncomment if XML mappers are added
+
+# Redis Configuration (Placeholder for future use if needed, currently not used by code)
+# redis:
+#   host: 192.168.192.128
+#   port: 16379
+#   timeout: 5000
+#   lettuce:
+#     pool:
+#       max-active: 10
+#       max-idle: 10
+#       min-idle: 5
+#       max-wait: -1
+
+aliyun:
+  ai:
+    api-key: sk-c0efcf97c9a041ab8f9d998012ad1bc9
+    api-url: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+    model: qwen-plus
