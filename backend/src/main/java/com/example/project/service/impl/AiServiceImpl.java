@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,8 @@ import okhttp3.Response;
 
 @Service
 public class AiServiceImpl implements AiService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AiServiceImpl.class);
 
     @Value("${aliyun.ai.api-key}")
     private String apiKey;
@@ -39,6 +43,8 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public String chat(String userMessage) throws IOException {
+        logger.info("Received AI chat request: {}", userMessage);
+        
         // 1. 构建请求体
         Map<String, Object> bodyMap = new HashMap<>();
         bodyMap.put("model", model);
@@ -52,6 +58,7 @@ public class AiServiceImpl implements AiService {
         bodyMap.put("messages", messages);
 
         String jsonBody = JSON.toJSONString(bodyMap);
+        logger.debug("Sending request to AI API: {}", jsonBody);
 
         // 2. 发起请求
         RequestBody body = RequestBody.create(jsonBody, MediaType.parse("application/json"));
@@ -64,21 +71,30 @@ public class AiServiceImpl implements AiService {
 
         // 3. 解析响应
         try (Response response = client.newCall(request).execute()) {
+            String responseStr = response.body().string();
+            logger.debug("Received response from AI API: {}", responseStr);
+            
             if (!response.isSuccessful()) {
+                logger.error("AI API request failed with status {}: {}", response.code(), responseStr);
                 throw new IOException("Unexpected code " + response);
             }
             
-            String responseStr = response.body().string();
             JSONObject jsonResponse = JSON.parseObject(responseStr);
             
             // 提取回复内容
             if (jsonResponse.containsKey("choices") && !jsonResponse.getJSONArray("choices").isEmpty()) {
-                return jsonResponse.getJSONArray("choices")
+                String aiResponse = jsonResponse.getJSONArray("choices")
                         .getJSONObject(0)
                         .getJSONObject("message")
                         .getString("content");
+                logger.info("AI response generated successfully");
+                return aiResponse;
             }
+            logger.warn("AI API returned unexpected response format: {}", responseStr);
             return "抱歉，我暂时无法回答这个问题。";
+        } catch (Exception e) {
+            logger.error("Error occurred during AI chat processing", e);
+            throw e;
         }
     }
 }

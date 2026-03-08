@@ -7,7 +7,7 @@
     
     <div class="chat-window" v-if="isOpen">
       <div class="chat-header">
-        <span>智能助手</span>
+        <span>活动策划助手</span>
         <div class="header-controls">
            <el-icon class="minimize-btn" @click="toggleChat" title="最小化"><Minus /></el-icon>
            <el-icon class="close-btn" @click="closeAssistant" title="关闭"><Close /></el-icon>
@@ -29,7 +29,7 @@
           v-model="inputMessage" 
           @keyup.enter="sendMessage"
           type="text" 
-          placeholder="问问AI助手..."
+          placeholder="询问活动策划建议..."
         >
         <button @click="sendMessage" :disabled="!inputMessage.trim()">发送</button>
       </div>
@@ -55,7 +55,7 @@ const isVisible = computed(() => {
 })
 
 const messages = ref([
-  { role: 'ai', content: '你好！我是你的旅行AI助手，有什么可以帮你的吗？' }
+  { role: 'ai', content: '你好！我是你的活动策划AI助手，有什么可以帮你的吗？' }
 ])
 
 const toggleChat = () => {
@@ -129,9 +129,30 @@ const fetchQwenResponse = async (text) => {
     // 移除加载消息
     messages.value.pop()
     console.error('AI API Error:', error)
+
+    // 更详细的错误处理
+    let errorMessage = '网络连接出错，请检查网络或稍后再试。'
+    if (error.response) {
+      // 服务器返回了错误响应
+      console.error('Error response:', error.response.data)
+      if (error.response.data && error.response.data.msg) {
+        errorMessage = '服务错误: ' + error.response.data.msg
+      } else {
+        errorMessage = '服务错误: ' + error.response.statusText
+      }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      console.error('No response received:', error.request)
+      errorMessage = '请求超时，请检查网络连接或稍后再试。'
+    } else {
+      // 请求配置错误
+      console.error('Request config error:', error.message)
+      errorMessage = '请求配置错误: ' + error.message
+    }
+
     messages.value.push({
       role: 'ai',
-      content: '网络连接出错，请检查网络或稍后再试。'
+      content: errorMessage
     })
   }
   

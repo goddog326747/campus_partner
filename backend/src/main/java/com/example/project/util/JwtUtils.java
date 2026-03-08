@@ -20,19 +20,30 @@ public class JwtUtils {
     /**
      * 生成签名
      * @param username 用户名
+     * @param userId 用户ID
      * @return 加密的token
      */
-    public static String sign(String username) {
+    public static String sign(String username, Long userId) {
         try {
             Date date = new Date(System.currentTimeMillis() + EXPIRE_TIME);
             Algorithm algorithm = Algorithm.HMAC256(SECRET);
             return JWT.create()
                     .withClaim("username", username)
+                    .withClaim("userId", userId)
                     .withExpiresAt(date)
                     .sign(algorithm);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * 生成签名（兼容旧版本，只传入username）
+     * @param username 用户名
+     * @return 加密的token
+     */
+    public static String sign(String username) {
+        return sign(username, null);
     }
 
     /**
@@ -59,6 +70,20 @@ public class JwtUtils {
         try {
             DecodedJWT jwt = JWT.decode(token);
             return jwt.getClaim("username").asString();
+        } catch (JWTDecodeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获得token中的用户ID
+     * @param token JWT token
+     * @return token中包含的用户ID
+     */
+    public static Long getUserId(String token) {
+        try {
+            DecodedJWT jwt = JWT.decode(token);
+            return jwt.getClaim("userId").asLong();
         } catch (JWTDecodeException e) {
             return null;
         }

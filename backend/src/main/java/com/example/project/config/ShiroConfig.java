@@ -53,6 +53,13 @@ public class ShiroConfig {
         // 所有请求通过我们自己的JWT Filter
         // 登录接口允许匿名访问
         filterRuleMap.put("/api/auth/**", "anon");
+        // 帖子列表和分类接口允许匿名访问
+        filterRuleMap.put("/api/post/list", "anon");
+        filterRuleMap.put("/api/post/categories", "anon");
+        // AI 助手接口允许匿名访问
+        filterRuleMap.put("/api/ai/**", "anon");
+        // 帖子创建接口需要通过 jwt 过滤器
+        filterRuleMap.put("/api/post/create", "jwt");
         // 其他接口需要通过 jwt 过滤器
         filterRuleMap.put("/**", "jwt");
         factoryBean.setFilterChainDefinitionMap(filterRuleMap);

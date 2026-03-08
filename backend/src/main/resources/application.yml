@@ -21,6 +21,15 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
 
+# Logging Configuration
+logging:
+  level:
+    com.example.project.service.impl.AiServiceImpl: DEBUG
+    com.example.project.controller.AiController: DEBUG
+    org.springframework.web: DEBUG
+    com.alibaba: DEBUG
+    okhttp3: DEBUG
+
 # MyBatis Plus Configuration
 mybatis-plus:
   configuration:
@@ -44,4 +53,4 @@ aliyun:
   ai:
     api-key: sk-c0efcf97c9a041ab8f9d998012ad1bc9
     api-url: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-    model: qwen-plus
+    model: qwen3.5-plus

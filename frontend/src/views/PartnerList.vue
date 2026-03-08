@@ -17,7 +17,6 @@
         </el-input>
       </div>
 
-      <!-- 2. Category Tabs below Search -->
       <div class="category-tabs">
         <el-tabs v-model="activeCategory" @tab-click="handleTabClick">
           <el-tab-pane label="全部" name="" />
@@ -82,10 +81,13 @@ const fetchList = async () => {
       category: activeCategory.value, 
       keyword: searchQuery.value 
   }
+  console.log('fetchList called with params:', params)
   try {
     const res = await listPosts(params)
+    console.log('listPosts response:', res)
     if (res.code === 200) {
         partners.value = res.data || []
+        console.log('partners count:', partners.value.length)
     } else {
         partners.value = []
     }
@@ -97,7 +99,11 @@ const fetchList = async () => {
   }
 }
 
-const handleTabClick = () => {
+const handleTabClick = (tab) => {
+    // tab.paneName is the value of the name prop (which is 'cat' in our loop)
+    // activeCategory is already updated by v-model, but let's double check
+    console.log('Tab clicked, paneName:', tab.paneName, 'activeCategory:', activeCategory.value)
+    activeCategory.value = tab.paneName
     fetchList()
 }
 

@@ -26,16 +26,16 @@ public class AuthServiceImpl implements AuthService {
         User user = userMapper.selectOne(queryWrapper);
 
         if (user != null && user.getPassword().equals(password)) {
-            // 登录成功，生成 Token
-            String token = JwtUtils.sign(username);
-            
+            // 登录成功，生成 Token（包含用户ID）
+            String token = JwtUtils.sign(username, user.getId());
+
             Map<String, Object> data = new HashMap<>();
             data.put("token", token);
-            
+
             // 返回用户信息 (脱敏)
             user.setPassword(null);
             data.put("userInfo", user);
-            
+
             return Result.success("登录成功", data);
         } else {
             return Result.error(401, "用户名或密码错误");

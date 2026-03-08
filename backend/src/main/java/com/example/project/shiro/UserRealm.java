@@ -9,11 +9,15 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UserRealm extends AuthorizingRealm {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserRealm.class);
 
     @Autowired
     private UserMapper userMapper;
@@ -32,6 +36,7 @@ public class UserRealm extends AuthorizingRealm {
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
         String username = JwtUtils.getUsername(principals.toString());
+        logger.debug("Performing authorization for user: {}", username);
         SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
         // 模拟：根据用户名查询权限
         // Set<String> roleSet = userService.getUserRoles(username);
@@ -49,7 +54,10 @@ public class UserRealm extends AuthorizingRealm {
         String token = (String) auth.getCredentials();
         String username = JwtUtils.getUsername(token);
 
+        logger.info("Performing authentication for user: {}", username);
+
         if (username == null) {
+            logger.warn("Invalid token - username could not be extracted");
             throw new AuthenticationException("token invalid");
         }
 
@@ -59,13 +67,16 @@ public class UserRealm extends AuthorizingRealm {
         User user = userMapper.selectOne(queryWrapper);
         
         if (user == null) {
+            logger.warn("User not found in database: {}", username);
             throw new AuthenticationException("User didn't existed!");
         }
 
         if (!JwtUtils.verify(token)) {
+            logger.warn("Token verification failed for user: {}", username);
             throw new AuthenticationException("Username or password error");
         }
 
+        logger.info("Successfully authenticated user: {}", username);
         return new SimpleAuthenticationInfo(token, token, "my_realm");
     }
 }
