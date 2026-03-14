@@ -1,13 +1,12 @@
 package com.example.project.entity;
 
-import java.time.LocalDateTime;
-
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Data
 @TableName("post")
@@ -23,10 +22,29 @@ public class Post {
     
     private Long userId;
     
-    @TableField(exist = false) // 数据库中没有这个字段，需要关联查询或者存入时冗余，这里暂时假设存入时冗余或者前端不展示
-    private String username;
-
+    private String images;
+    
+    private String destination;
+    
     private LocalDateTime createTime;
     
     private LocalDateTime updateTime;
+    
+    @TableField(exist = false)
+    private String username;
+    
+    @TableField(exist = false)
+    private String avatar;
+    
+    @TableField(exist = false)
+    private String userLocation;
+    
+    @TableField(exist = false)
+    private String userSchool;
+    
+    @TableField(exist = false)
+    private Integer userVerified;
+    
+    @TableField(exist = false)
+    private Integer userGender;
 }

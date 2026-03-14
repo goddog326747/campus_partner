@@ -4,19 +4,21 @@
       <div class="header-cancel-btn" @click="$router.back()">取消</div>
       <div class="header-title">发笔记</div>
       <div class="header-commit">
-        <div class="header-commit-btn" @click="submitBlog">发布</div>
+        <div class="header-commit-btn" @click="submitBlog" :class="{ disabled: submitting }">
+          {{ submitting ? '发布中...' : '发布' }}
+        </div>
       </div>
     </div>
     
     <div class="upload-box">
-      <input type="file" @change="fileSelected" name="file" ref="fileInput" style="display: none" accept="image/*">
-      <div class="upload-btn" @click="openFileDialog">
+      <input type="file" @change="fileSelected" name="file" ref="fileInput" style="display: none" accept="image/*" multiple>
+      <div class="upload-btn" @click="openFileDialog" v-if="fileList.length < 9">
         <el-icon><Camera /></el-icon>
         <div style="font-size: 12px;line-height: 12px">上传照片</div>
       </div>
       <div class="pic-list">
         <div class="pic-box" v-for="(f, i) in fileList" :key="i">
-          <img :src="f" alt="">
+          <img :src="f.preview" alt="">
           <el-icon class="close-icon" @click="deletePic(i)"><Close /></el-icon>
         </div>
       </div>
@@ -38,7 +40,11 @@
       <div v-else>去选择 <el-icon><ArrowRight /></el-icon></div>
     </div>
 
-    <!-- 分区选择弹窗 -->
+    <div class="blog-option">
+      <div class="option-left">目的地</div>
+      <input v-model="form.destination" type="text" placeholder="填写目的地（选填）" class="option-input">
+    </div>
+
     <el-dialog v-model="showPartitionDialog" title="选择分区" width="90%" custom-class="bottom-dialog">
       <div class="partition-list">
         <div 
@@ -68,10 +74,12 @@ const fileInput = ref(null)
 const fileList = ref([])
 const showPartitionDialog = ref(false)
 const selectedPartition = ref('')
+const submitting = ref(false)
 
 const form = reactive({
   title: '',
-  content: ''
+  content: '',
+  destination: ''
 })
 
 const partitions = ref([])
@@ -96,14 +104,22 @@ const openFileDialog = () => {
 }
 
 const fileSelected = (e) => {
-    const file = e.target.files[0]
-    if (file) {
+    const files = Array.from(e.target.files)
+    files.forEach(file => {
+        if (fileList.value.length >= 9) {
+            ElMessage.warning('最多上传9张图片')
+            return
+        }
         const reader = new FileReader()
         reader.readAsDataURL(file)
         reader.onload = (e) => {
-            fileList.value.push(e.target.result)
+            fileList.value.push({
+                file: file,
+                preview: e.target.result
+            })
         }
-    }
+    })
+    e.target.value = ''
 }
 
 const deletePic = (index) => {
@@ -120,22 +136,35 @@ const submitBlog = async () => {
     ElMessage.warning('请填写标题、内容并选择分区')
     return
   }
-  const payload = {
-    title: form.title,
-    content: form.content,
-    // images: fileList.value, // TODO: 后端暂未实现图片存储，这里先注释或保留
-    category: selectedPartition.value
-  }
+  
+  if (submitting.value) return
+  submitting.value = true
+  
   try {
-    const res = await createPost(payload)
+    const formData = new FormData()
+    formData.append('title', form.title)
+    formData.append('content', form.content)
+    formData.append('category', selectedPartition.value)
+    if (form.destination) {
+      formData.append('destination', form.destination)
+    }
+    
+    fileList.value.forEach(f => {
+      formData.append('images', f.file)
+    })
+    
+    const res = await createPost(formData)
     if (res.code === 200) {
         ElMessage.success('发布成功')
         router.push('/')
     } else {
         ElMessage.error(res.msg || '发布失败')
     }
-  } catch {
+  } catch (e) {
+    console.error(e)
     ElMessage.error('发布失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
 }
 </script>
@@ -167,6 +196,11 @@ const submitBlog = async () => {
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 14px;
+  cursor: pointer;
+}
+.header-commit-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .upload-box {
@@ -185,6 +219,7 @@ const submitBlog = async () => {
   align-items: center;
   border-radius: 8px;
   color: #999;
+  cursor: pointer;
 }
 .pic-list {
   display: flex;
@@ -247,6 +282,17 @@ const submitBlog = async () => {
   color: #333;
   border-bottom: 1px solid #f5f5f5;
 }
+.option-left {
+  color: #333;
+}
+.option-input {
+  border: none;
+  text-align: right;
+  font-size: 16px;
+  outline: none;
+  color: #666;
+  width: 200px;
+}
 .partition-list {
   display: flex;
   flex-wrap: wrap;
@@ -259,6 +305,7 @@ const submitBlog = async () => {
   border-radius: 20px;
   font-size: 14px;
   color: #333;
+  cursor: pointer;
 }
 .partition-item.active {
   background: #ff2442;

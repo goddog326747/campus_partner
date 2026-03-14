@@ -1,0 +1,39 @@
+USE `campus_partner`;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS `post`;
+CREATE TABLE `post` (
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `title` varchar(255) NOT NULL COMMENT '标题',
+    `content` text NOT NULL COMMENT '内容',
+    `category` varchar(50) NOT NULL COMMENT '分类(游戏组队/漫展搭子/旅行出游...)',
+    `user_id` bigint(20) NOT NULL COMMENT '发布者ID',
+    `images` text COMMENT '图片URL列表(JSON数组)',
+    `destination` varchar(100) COMMENT '目的地/地点',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_category` (`category`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子表';
+
+INSERT INTO `post` (`title`, `content`, `category`, `user_id`, `destination`, `create_time`) VALUES
+('周末有人一起打王者吗', '钻石段位，主玩射手和法师，想找几个队友一起上分，最好是西电的，方便开麦交流。周末下午晚上都有空，有意向的私聊我加微信~', '游戏组队', 1, NULL, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('西安漫展有人一起吗', '这周末西安有个漫展，想找个搭子一起去，可以一起cos或者帮忙拍照。我主要出原神和明日方舟的角色，有相同爱好的小伙伴快来联系我！', '漫展搭子', 2, '西安国际会展中心', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('五一想去华山有人吗', '计划五一去爬华山，想找几个体力好的小伙伴一起，预计两天一夜，可以一起拼住宿。本人男，研二，性格好相处，有意向的留言或者私信~', '旅行出游', 5, '华山', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+('有没有一起打篮球的', '最近想找人一起打球，西电北校区这边，周末下午或者晚上都可以。本人身高180，打小前锋，希望找几个球友一起切磋，水平不限，主要是图个开心', '运动健身', 7, '西电北校区', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('探店！回民街新开的火锅店', '昨天和室友去回民街新开的那家重庆火锅，味道真的绝了！毛肚、鸭肠都很新鲜，锅底够辣够味。人均80左右，性价比很高。有想去的可以约一波~', '美食探店', 9, '回民街', DATE_SUB(NOW(), INTERVAL 4 DAY)),
+('原神萌新求带', '刚入坑原神不久，现在世界等级3，想找个大佬带我打打副本什么的。我是西电大三的，平时晚上和周末都在线，有大佬愿意带带我吗', '游戏组队', 6, NULL, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+('毕业旅行想去青海湖', '马上毕业了，想趁这段时间去青海湖转一圈，大概5-7天。有没有想一起的？可以一起租车自驾，费用AA。本人男，性格随和，会开车', '旅行出游', 8, '青海湖', DATE_SUB(NOW(), INTERVAL 6 DAY)),
+('周末约饭！', '这周末想去小寨那边吃个日料，一个人去有点尴尬，有没有想一起的小伙伴？可以顺便逛逛街什么的，男女不限，西电的优先哈', '美食探店', 4, '小寨', DATE_SUB(NOW(), INTERVAL 12 HOUR)),
+('组队开黑！英雄联盟', '黄金段位，想找几个队友一起打排位，最好能开麦。主玩打野和上单，晚上7点后基本都在线。西电的兄弟们快来！', '游戏组队', 3, NULL, DATE_SUB(NOW(), INTERVAL 8 HOUR)),
+('秦岭徒步有人吗', '计划这周六去秦岭徒步，走个中等难度的线路，大概6-7个小时。需要自带干粮和水，有兴趣的小伙伴可以一起，人多热闹也好照应', '户外运动', 10, '秦岭', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('西安城墙骑行', '想找个搭子一起去城墙上骑车，傍晚去正好可以看日落，骑完还能去回民街吃个饭。有想一起的吗？这周末都可以', '旅行出游', 2, '西安城墙', DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+('有没有一起健身的', '最近在北校区健身房办了卡，想找个健身搭子一起练，互相监督。本人男，主要想增肌，有相同目标的小伙伴可以约起来', '运动健身', 1, '西电北校区', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('大雁塔音乐喷泉', '晚上想去看大雁塔的音乐喷泉，听说晚上8点那场最壮观。一个人去有点无聊，有没有想一起的？看完可以附近逛逛', '旅行出游', 4, '大雁塔', DATE_SUB(NOW(), INTERVAL 6 HOUR)),
+('永劫无间找人组队', '最近在玩永劫无间，想找几个队友一起打三排。目前黄金段位，主玩宁红夜和天海。最好是西电的，方便语音交流', '游戏组队', 5, NULL, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+('大唐不夜城夜游', '晚上想去大唐不夜城逛逛，看看夜景和表演。有没有想一起的小伙伴？可以一起拍照打卡，顺便吃吃小吃', '旅行出游', 6, '大唐不夜城', DATE_SUB(NOW(), INTERVAL 10 HOUR));
+
+SET FOREIGN_KEY_CHECKS = 1;
