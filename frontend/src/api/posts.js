@@ -1,24 +1,54 @@
 import http from './http'
 
 export function listPosts(params) {
-  // Backend endpoint: /api/post/list
   return http.get('/post/list', { params })
 }
 
+export function listPostsWithFilter(params) {
+  return http.get('/post/list/filter', { params })
+}
+
 export function getCategories() {
-  // Backend endpoint: /api/post/categories
   return http.get('/post/categories')
 }
 
-export function createPost(data) {
-  // Backend endpoint: /api/post/create
-  return http.post('/post/create', data)
+export function createPost(formData) {
+  return http.post('/post/create', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
 }
 
 export function getPost(id) {
-  // Backend endpoint: /api/post/detail?id=... or similar. 
-  // Wait, I haven't implemented detail endpoint in backend yet. 
-  // But let's keep it for now or comment it out if not used yet.
-  // Actually I should probably add a detail endpoint in backend controller.
   return http.get(`/post/detail/${id}`)
+}
+
+export function deletePost(id) {
+  return http.delete(`/post/${id}`)
+}
+
+export function listComments(postId, params = {}) {
+  const defaultParams = { pageNum: 1, pageSize: 10 }
+  return http.get('/comment/list', { params: { ...defaultParams, ...params, postId } })
+}
+
+export function createComment(data) {
+  return http.post('/comment/create', data)
+}
+
+export function deleteComment(commentId) {
+  return http.delete(`/comment/delete/${commentId}`)
+}
+
+export function toggleLike(commentId) {
+  return http.post(`/comment/like/${commentId}`)
+}
+
+export function listReplies(parentCommentId) {
+  return http.get(`/comment/replies/${parentCommentId}`)
+}
+
+export function getPostsByUser(userId) {
+  return http.get(`/post/user/${userId}`)
 }

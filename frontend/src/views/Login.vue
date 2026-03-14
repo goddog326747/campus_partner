@@ -13,7 +13,7 @@
           <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">登录</el-button>
         </el-form-item>
         <div class="login-links">
-          <span>还没有账号？<a href="#" @click.prevent="ElMessage.info('注册功能开发中，请联系管理员')">立即注册</a></span>
+          <span>还没有账号？<router-link to="/register">立即注册</router-link></span>
         </div>
       </el-form>
     </div>

@@ -5,21 +5,22 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.project.common.CategoryConstants;
 import com.example.project.common.Result;
 import com.example.project.entity.Post;
 import com.example.project.service.PostService;
 
-/**
- * 帖子控制器，提供帖子相关的API接口
- */
 @RestController
 @RequestMapping("/api/post")
 public class PostController {
@@ -29,10 +30,6 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    /**
-     * 获取所有帖子分类
-     * @return 包含所有分类的数组
-     */
     @GetMapping("/categories")
     public Result<String[]> getCategories() {
         logger.info("Fetching all post categories");
@@ -46,12 +43,6 @@ public class PostController {
         }
     }
 
-    /**
-     * 获取帖子列表，支持按分类和关键词筛选
-     * @param category 分类名称，可选
-     * @param keyword 搜索关键词，可选
-     * @return 帖子列表
-     */
     @GetMapping("/list")
     public Result<List<Post>> list(@RequestParam(required = false) String category,
                                    @RequestParam(required = false) String keyword) {
@@ -66,26 +57,109 @@ public class PostController {
         }
     }
 
-    /**
-     * 创建新帖子
-     * @param post 帖子对象
-     * @return 操作结果
-     */
-    @PostMapping("/create")
-    public Result<String> create(@RequestBody Post post) {
-        logger.info("Creating new post - title: {}", post.getTitle());
+    @GetMapping("/list/filter")
+    public Result<Page<Post>> listWithFilter(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String school,
+            @RequestParam(required = false) Boolean verified,
+            @RequestParam(required = false) Integer gender,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}", 
+                category, keyword, location, school, verified, gender);
         try {
+            Page<Post> page = postService.listPosts(category, keyword, location, school, verified, gender, pageNum, pageSize);
+            return Result.success(page);
+        } catch (Exception e) {
+            logger.error("Error fetching post list with filters", e);
+            return Result.error(500, "获取帖子列表失败");
+        }
+    }
+
+    @GetMapping("/detail/{id}")
+    public Result<Post> getDetail(@PathVariable Long id) {
+        logger.info("Fetching post detail - id: {}", id);
+        try {
+            Post post = postService.getPostById(id);
+            if (post == null) {
+                return Result.error(404, "帖子不存在");
+            }
+            return Result.success(post);
+        } catch (Exception e) {
+            logger.error("Error fetching post detail", e);
+            return Result.error(500, "获取帖子详情失败");
+        }
+    }
+
+    @GetMapping("/user/{userId}")
+    public Result<List<Post>> getPostsByUser(@PathVariable Long userId) {
+        logger.info("Fetching posts by user - userId: {}", userId);
+        try {
+            List<Post> posts = postService.getPostsByUserId(userId);
+            return Result.success(posts);
+        } catch (Exception e) {
+            logger.error("Error fetching user posts", e);
+            return Result.error(500, "获取用户帖子失败");
+        }
+    }
+
+    @PostMapping("/create")
+    public Result<String> create(
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam("category") String category,
+            @RequestParam(value = "destination", required = false) String destination,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        logger.info("Creating new post - title: {}, category: {}", title, category);
+        try {
+            Post post = new Post();
+            post.setTitle(title);
+            post.setContent(content);
+            post.setCategory(category);
+            post.setDestination(destination);
+            
+            if (images != null && !images.isEmpty()) {
+                List<String> imageUrls = postService.uploadImages(images);
+                if (!imageUrls.isEmpty()) {
+                    post.setImages(toJsonArray(imageUrls));
+                }
+            }
+            
             boolean success = postService.createPost(post);
             if (success) {
                 logger.info("Successfully created post with ID: {}", post.getId());
                 return Result.success("发布成功");
             } else {
-                logger.warn("Failed to create post - title: {}", post.getTitle());
+                logger.warn("Failed to create post - title: {}", title);
                 return Result.error(500, "发布失败");
             }
         } catch (Exception e) {
             logger.error("Error creating post", e);
             return Result.error(500, "发布失败: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<String> deletePost(@PathVariable Long id) {
+        logger.info("Deleting post - id: {}", id);
+        try {
+            postService.deletePost(id);
+            return Result.success("删除成功");
+        } catch (Exception e) {
+            logger.error("Error deleting post", e);
+            return Result.error(500, "删除失败: " + e.getMessage());
+        }
+    }
+    
+    private String toJsonArray(List<String> list) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append("\"").append(list.get(i)).append("\"");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
