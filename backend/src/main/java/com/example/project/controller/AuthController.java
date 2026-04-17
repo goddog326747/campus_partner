@@ -11,6 +11,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 认证控制器
+ * <p>
+ * 提供用户认证相关的API接口，包括用户登录、注册和获取当前用户信息等功能
+ * </p>
+ *
+ * @author system
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -23,6 +32,12 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
+    /**
+     * 用户登录
+     *
+     * @param user 登录请求体，包含username和password字段
+     * @return 登录结果，成功时返回用户信息和token
+     */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> user) {
         String username = user.get("username");
@@ -44,6 +59,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * 用户注册
+     *
+     * @param user 注册用户信息，包含用户名、密码等
+     * @return 注册结果，成功时返回用户信息
+     */
     @PostMapping("/register")
     public Result<User> register(@RequestBody User user) {
         logger.info("User register attempt - username: {}", user.getUsername());
@@ -61,6 +82,11 @@ public class AuthController {
         }
     }
 
+    /**
+     * 获取当前登录用户信息
+     *
+     * @return 当前用户信息
+     */
     @GetMapping("/me")
     public Result<User> getCurrentUser() {
         return authService.getCurrentUser();

@@ -1,10 +1,12 @@
 package com.example.project.config;
 
-import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+// Redisson 配置类 - 暂时禁用，需要时取消注释并添加 Redisson 依赖
+// import org.redisson.api.RedissonClient;
+// import org.springframework.beans.factory.annotation.Value;
+// import org.springframework.context.annotation.Bean;
+// import org.springframework.context.annotation.Configuration;
 
+/*
 @Configuration
 public class RedissonConfig {
 
@@ -32,3 +34,4 @@ public class RedissonConfig {
         return org.redisson.Redisson.create(config);
     }
 }
+*/

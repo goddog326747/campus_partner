@@ -12,7 +12,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 评论控制器，提供评论相关的API接口
+ * 评论控制器
+ * <p>
+ * 提供评论相关的API接口，包括评论的增删查、点赞和回复等功能
+ * </p>
+ *
+ * @author system
+ * @since 1.0
  */
 @RestController
 @RequestMapping("/api/comment")
@@ -25,10 +31,11 @@ public class CommentController {
 
     /**
      * 获取帖子的评论列表（分页）
-     * @param postId 帖子ID
-     * @param pageNum 页码（从1开始）
+     *
+     * @param postId   帖子ID
+     * @param pageNum  页码（从1开始）
      * @param pageSize 每页大小
-     * @return 评论列表
+     * @return 评论分页列表
      */
     @GetMapping("/list")
     public Result<Page<Comment>> listComments(
@@ -46,8 +53,9 @@ public class CommentController {
     }
 
     /**
-     * 创建评论
-     * @param comment 评论对象
+     * 创建新评论
+     *
+     * @param comment 评论对象，包含评论内容、帖子ID等信息
      * @return 操作结果
      */
     @PostMapping("/create")
@@ -69,6 +77,10 @@ public class CommentController {
 
     /**
      * 删除评论
+     * <p>
+     * 仅评论所有者或管理员可以删除评论
+     * </p>
+     *
      * @param commentId 评论ID
      * @return 操作结果
      */
@@ -90,8 +102,12 @@ public class CommentController {
 
     /**
      * 点赞/取消点赞评论
+     * <p>
+     * 切换评论的点赞状态，已点赞则取消，未点赞则点赞
+     * </p>
+     *
      * @param commentId 评论ID
-     * @return 操作结果
+     * @return 更新后的点赞数量
      */
     @PostMapping("/like/{commentId}")
     public Result<Integer> toggleLike(@PathVariable Long commentId) {
@@ -107,6 +123,7 @@ public class CommentController {
 
     /**
      * 获取评论的回复列表
+     *
      * @param parentCommentId 父评论ID
      * @return 回复列表
      */

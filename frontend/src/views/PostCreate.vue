@@ -32,6 +32,13 @@
       <textarea v-model="form.content" placeholder="最近打卡了什么地方，有什么新奇体验呢？"></textarea>
     </div>
 
+    <div class="ai-generate-section">
+      <div class="ai-generate-btn" @click="showAiDialog = true">
+        <el-icon><MagicStick /></el-icon>
+        <span>AI 智能生成</span>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <div class="blog-option" @click="showPartitionDialog = true">
@@ -59,15 +66,65 @@
       </div>
     </el-dialog>
 
+    <el-dialog v-model="showAiDialog" title="AI 智能生成" width="90%" class="ai-dialog">
+      <div class="ai-form">
+        <div class="ai-form-item">
+          <label>主题 <span class="required">*</span></label>
+          <input v-model="aiForm.topic" type="text" placeholder="例如：周末一起去爬山">
+        </div>
+        <div class="ai-form-item">
+          <label>分类</label>
+          <div class="ai-category-list">
+            <div 
+              v-for="c in partitions" 
+              :key="c" 
+              class="ai-category-item"
+              :class="{ active: aiForm.category === c }"
+              @click="aiForm.category = c"
+            >
+              {{ c }}
+            </div>
+          </div>
+        </div>
+        <div class="ai-form-item">
+          <label>目的地</label>
+          <input v-model="aiForm.destination" type="text" placeholder="例如：黄山（选填）">
+        </div>
+        <div class="ai-form-item">
+          <label>风格</label>
+          <div class="ai-style-list">
+            <div 
+              v-for="s in aiStyles" 
+              :key="s" 
+              class="ai-style-item"
+              :class="{ active: aiForm.style === s }"
+              @click="aiForm.style = s"
+            >
+              {{ s }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="ai-dialog-footer">
+          <el-button @click="showAiDialog = false">取消</el-button>
+          <el-button type="primary" @click="generateWithAi" :loading="aiGenerating">
+            {{ aiGenerating ? '生成中...' : '生成内容' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Camera, Close, ArrowRight } from '@element-plus/icons-vue'
+import { Camera, Close, ArrowRight, MagicStick } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { createPost, getCategories } from '../api/posts'
+import { aiGeneratePost } from '../api/ai'
 
 const router = useRouter()
 const fileInput = ref(null)
@@ -83,6 +140,17 @@ const form = reactive({
 })
 
 const partitions = ref([])
+
+const showAiDialog = ref(false)
+const aiGenerating = ref(false)
+const aiStyles = ['轻松活泼', '热情邀请', '认真严肃', '幽默风趣', '文艺清新']
+
+const aiForm = reactive({
+  topic: '',
+  category: '',
+  destination: '',
+  style: '轻松活泼'
+})
 
 const fetchCategories = async () => {
     try {
@@ -129,6 +197,44 @@ const deletePic = (index) => {
 const selectPartition = (p) => {
     selectedPartition.value = p
     showPartitionDialog.value = false
+}
+
+const generateWithAi = async () => {
+  if (!aiForm.topic.trim()) {
+    ElMessage.warning('请输入主题')
+    return
+  }
+  
+  aiGenerating.value = true
+  
+  try {
+    const res = await aiGeneratePost({
+      topic: aiForm.topic,
+      category: aiForm.category || undefined,
+      destination: aiForm.destination || undefined,
+      style: aiForm.style || undefined
+    })
+    
+    if (res.code === 200) {
+      form.title = res.data.title
+      form.content = res.data.content
+      if (res.data.category && !selectedPartition.value) {
+        selectedPartition.value = res.data.category
+      }
+      if (res.data.destination && !form.destination) {
+        form.destination = res.data.destination
+      }
+      ElMessage.success('AI 生成成功，可继续编辑')
+      showAiDialog.value = false
+    } else {
+      ElMessage.error(res.msg || 'AI 生成失败')
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('AI 生成失败，请稍后重试')
+  } finally {
+    aiGenerating.value = false
+  }
 }
 
 const submitBlog = async () => {
@@ -267,6 +373,30 @@ const submitBlog = async () => {
   line-height: 1.5;
 }
 
+.ai-generate-section {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.ai-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ai-generate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+.ai-generate-btn .el-icon {
+  font-size: 16px;
+}
+
 .divider {
   height: 1px;
   background: #eee;
@@ -310,5 +440,60 @@ const submitBlog = async () => {
 .partition-item.active {
   background: #ff2442;
   color: #fff;
+}
+
+.ai-form {
+  padding: 10px 0;
+}
+.ai-form-item {
+  margin-bottom: 20px;
+}
+.ai-form-item label {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.ai-form-item label .required {
+  color: #ff2442;
+}
+.ai-form-item input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+.ai-form-item input:focus {
+  border-color: #667eea;
+}
+.ai-category-list,
+.ai-style-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-category-item,
+.ai-style-item {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ai-category-item.active,
+.ai-style-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+.ai-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>

@@ -20,6 +20,7 @@
         <shiro.version>1.13.0</shiro.version>
         <jwt.version>3.18.2</jwt.version>
         <redisson.version>3.27.0</redisson.version>
+        <langchain4j.version>0.36.2</langchain4j.version>
     </properties>
 
     <dependencies>
@@ -71,11 +72,25 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- LangChain4j AI Framework -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+
+        <!-- Redisson 暂时注释，需要时取消注释并确保 Netty 版本兼容
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>${redisson.version}</version>
         </dependency>
+        -->
     </dependencies>
 
     <repositories>

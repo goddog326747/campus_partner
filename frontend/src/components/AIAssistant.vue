@@ -20,7 +20,7 @@
             <el-icon v-if="msg.role === 'ai'"><Service /></el-icon>
             <el-icon v-else><User /></el-icon>
           </div>
-          <div class="content">{{ msg.content }}</div>
+          <div class="content" :class="{ 'markdown-content': msg.role === 'ai' }" v-html="msg.role === 'ai' ? renderMarkdown(msg.content) : msg.content"></div>
         </div>
       </div>
       
@@ -41,6 +41,12 @@
 import { ref, nextTick, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Service, Close, User, Minus } from '@element-plus/icons-vue'
+import { marked } from 'marked'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
 
 const route = useRoute()
 const isOpen = ref(false)
@@ -166,6 +172,11 @@ const scrollToBottom = () => {
     }
   })
 }
+
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  return marked.parse(content)
+}
 </script>
 
 <style scoped>
@@ -286,6 +297,79 @@ const scrollToBottom = () => {
 .message-item.user .content {
   background: #ff6633;
   color: white;
+}
+
+.message-item .content.markdown-content {
+  line-height: 1.6;
+}
+
+.message-item .content.markdown-content h1,
+.message-item .content.markdown-content h2,
+.message-item .content.markdown-content h3 {
+  margin: 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.message-item .content.markdown-content h1 {
+  font-size: 18px;
+}
+
+.message-item .content.markdown-content h2 {
+  font-size: 16px;
+}
+
+.message-item .content.markdown-content h3 {
+  font-size: 15px;
+}
+
+.message-item .content.markdown-content p {
+  margin: 6px 0;
+}
+
+.message-item .content.markdown-content ul,
+.message-item .content.markdown-content ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.message-item .content.markdown-content li {
+  margin: 4px 0;
+}
+
+.message-item .content.markdown-content code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.message-item .content.markdown-content pre {
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 13px;
+}
+
+.message-item .content.markdown-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.message-item .content.markdown-content strong {
+  font-weight: bold;
+}
+
+.message-item .content.markdown-content em {
+  font-style: italic;
+}
+
+.message-item .content.markdown-content blockquote {
+  border-left: 3px solid #ff6633;
+  padding-left: 10px;
+  margin: 8px 0;
+  color: #666;
 }
 
 .chat-input {

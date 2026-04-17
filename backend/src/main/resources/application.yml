@@ -28,10 +28,13 @@ spring:
 logging:
   level:
     com.example.project.service.impl.AiServiceImpl: DEBUG
+    com.example.project.service.impl.AiPostServiceImpl: DEBUG
     com.example.project.controller.AiController: DEBUG
+    com.example.project.controller.AiPostController: DEBUG
     org.springframework.web: DEBUG
     com.alibaba: DEBUG
     okhttp3: DEBUG
+    dev.langchain4j: DEBUG
 
 mybatis-plus:
   configuration:

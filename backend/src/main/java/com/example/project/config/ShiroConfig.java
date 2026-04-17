@@ -14,9 +14,27 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Shiro安全配置类
+ * <p>
+ * 配置Apache Shiro安全框架，实现JWT令牌认证和无状态会话管理
+ * </p>
+ *
+ * @author system
+ * @since 1.0
+ */
 @Configuration
 public class ShiroConfig {
 
+    /**
+     * 创建安全管理器
+     * <p>
+     * 配置自定义Realm和关闭Session存储，实现无状态认证
+     * </p>
+     *
+     * @param realm 自定义用户Realm
+     * @return 安全管理器实例
+     */
     @Bean("securityManager")
     public DefaultWebSecurityManager getManager(UserRealm realm) {
         DefaultWebSecurityManager manager = new DefaultWebSecurityManager();
@@ -36,6 +54,15 @@ public class ShiroConfig {
         return manager;
     }
 
+    /**
+     * 创建Shiro过滤器工厂Bean
+     * <p>
+     * 配置URL过滤规则，定义哪些接口需要认证，哪些可以匿名访问
+     * </p>
+     *
+     * @param securityManager 安全管理器
+     * @return Shiro过滤器工厂Bean
+     */
     @Bean("shiroFilterFactoryBean")
     public ShiroFilterFactoryBean factory(DefaultWebSecurityManager securityManager) {
         ShiroFilterFactoryBean factoryBean = new ShiroFilterFactoryBean();

@@ -21,6 +21,15 @@ import com.example.project.common.Result;
 import com.example.project.entity.Post;
 import com.example.project.service.PostService;
 
+/**
+ * 帖子控制器
+ * <p>
+ * 提供帖子的增删改查API接口，包括帖子列表查询、详情查看、创建发布和删除等功能
+ * </p>
+ *
+ * @author system
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/api/post")
 public class PostController {
@@ -30,6 +39,11 @@ public class PostController {
     @Autowired
     private PostService postService;
 
+    /**
+     * 获取所有帖子分类
+     *
+     * @return 分类数组
+     */
     @GetMapping("/categories")
     public Result<String[]> getCategories() {
         logger.info("Fetching all post categories");
@@ -43,6 +57,13 @@ public class PostController {
         }
     }
 
+    /**
+     * 获取帖子列表（简单查询）
+     *
+     * @param category 分类筛选条件，可选
+     * @param keyword  关键词搜索条件，可选
+     * @return 帖子列表
+     */
     @GetMapping("/list")
     public Result<List<Post>> list(@RequestParam(required = false) String category,
                                    @RequestParam(required = false) String keyword) {
@@ -57,6 +78,19 @@ public class PostController {
         }
     }
 
+    /**
+     * 获取帖子列表（高级筛选，分页）
+     *
+     * @param category  分类筛选条件，可选
+     * @param keyword   关键词搜索条件，可选
+     * @param location  地点筛选条件，可选
+     * @param school    学校筛选条件，可选
+     * @param verified  是否已认证筛选，可选
+     * @param gender    性别筛选，可选
+     * @param pageNum   页码，默认为1
+     * @param pageSize  每页大小，默认为10
+     * @return 分页帖子列表
+     */
     @GetMapping("/list/filter")
     public Result<Page<Post>> listWithFilter(
             @RequestParam(required = false) String category,
@@ -78,6 +112,12 @@ public class PostController {
         }
     }
 
+    /**
+     * 获取帖子详情
+     *
+     * @param id 帖子ID
+     * @return 帖子详情信息
+     */
     @GetMapping("/detail/{id}")
     public Result<Post> getDetail(@PathVariable Long id) {
         logger.info("Fetching post detail - id: {}", id);
@@ -93,6 +133,12 @@ public class PostController {
         }
     }
 
+    /**
+     * 获取指定用户的帖子列表
+     *
+     * @param userId 用户ID
+     * @return 该用户发布的帖子列表
+     */
     @GetMapping("/user/{userId}")
     public Result<List<Post>> getPostsByUser(@PathVariable Long userId) {
         logger.info("Fetching posts by user - userId: {}", userId);
@@ -105,6 +151,16 @@ public class PostController {
         }
     }
 
+    /**
+     * 创建新帖子
+     *
+     * @param title       帖子标题
+     * @param content     帖子内容
+     * @param category    帖子分类
+     * @param destination 目的地，可选
+     * @param images      图片文件列表，可选
+     * @return 操作结果
+     */
     @PostMapping("/create")
     public Result<String> create(
             @RequestParam("title") String title,
@@ -141,6 +197,12 @@ public class PostController {
         }
     }
 
+    /**
+     * 删除帖子
+     *
+     * @param id 帖子ID
+     * @return 操作结果
+     */
     @DeleteMapping("/{id}")
     public Result<String> deletePost(@PathVariable Long id) {
         logger.info("Deleting post - id: {}", id);
@@ -153,6 +215,12 @@ public class PostController {
         }
     }
     
+    /**
+     * 将字符串列表转换为JSON数组字符串
+     *
+     * @param list 字符串列表
+     * @return JSON数组字符串
+     */
     private String toJsonArray(List<String> list) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < list.size(); i++) {

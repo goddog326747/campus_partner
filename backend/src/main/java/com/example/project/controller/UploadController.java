@@ -12,6 +12,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 文件上传控制器
+ * <p>
+ * 提供文件上传和删除的API接口，支持单文件和多文件上传，支持指定目录上传
+ * </p>
+ *
+ * @author system
+ * @since 1.0
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/upload")
@@ -23,6 +32,12 @@ public class UploadController {
         this.storageServiceFactory = storageServiceFactory;
     }
 
+    /**
+     * 上传单个图片文件
+     *
+     * @param file 要上传的图片文件
+     * @return 上传结果，包含文件URL、原始文件名和文件大小
+     */
     @PostMapping("/image")
     public Result<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
@@ -45,6 +60,12 @@ public class UploadController {
         }
     }
 
+    /**
+     * 批量上传图片文件
+     *
+     * @param files 要上传的图片文件数组
+     * @return 上传结果列表，每个元素包含文件URL、原始文件名和文件大小
+     */
     @PostMapping("/images")
     public Result<List<Map<String, String>>> uploadImages(@RequestParam("files") MultipartFile[] files) {
         try {
@@ -72,6 +93,13 @@ public class UploadController {
         }
     }
 
+    /**
+     * 上传单个图片文件到指定目录
+     *
+     * @param file      要上传的图片文件
+     * @param directory 目标目录名称
+     * @return 上传结果，包含文件URL、原始文件名和文件大小
+     */
     @PostMapping("/image/{directory}")
     public Result<Map<String, String>> uploadImageToDirectory(
             @RequestParam("file") MultipartFile file,
@@ -96,6 +124,12 @@ public class UploadController {
         }
     }
 
+    /**
+     * 删除指定URL的图片文件
+     *
+     * @param url 要删除的图片文件URL
+     * @return 操作结果
+     */
     @DeleteMapping("/image")
     public Result<Void> deleteImage(@RequestParam("url") String url) {
         try {
@@ -110,6 +144,11 @@ public class UploadController {
         }
     }
 
+    /**
+     * 获取当前存储服务类型信息
+     *
+     * @return 存储类型信息
+     */
     @GetMapping("/storage-type")
     public Result<Map<String, String>> getStorageType() {
         Map<String, String> info = new HashMap<>();

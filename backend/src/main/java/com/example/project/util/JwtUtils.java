@@ -9,19 +9,27 @@ import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
+/**
+ * JWT工具类
+ * <p>
+ * 提供JWT令牌的生成、验证和解析功能，用于用户认证和授权
+ * </p>
+ *
+ * @author system
+ * @since 1.0
+ */
 @Component
 public class JwtUtils {
 
-    // 过期时间 24 小时
     private static final long EXPIRE_TIME = 24 * 60 * 60 * 1000;
-    // 密钥 (实际开发中请配置在 yml 文件中)
     private static final String SECRET = "MySecretKey123456";
 
     /**
-     * 生成签名
+     * 生成JWT令牌
+     *
      * @param username 用户名
-     * @param userId 用户ID
-     * @return 加密的token
+     * @param userId   用户ID
+     * @return 生成的JWT令牌，生成失败返回null
      */
     public static String sign(String username, Long userId) {
         try {
@@ -38,18 +46,20 @@ public class JwtUtils {
     }
 
     /**
-     * 生成签名（兼容旧版本，只传入username）
+     * 生成JWT令牌（兼容旧版本，只传入用户名）
+     *
      * @param username 用户名
-     * @return 加密的token
+     * @return 生成的JWT令牌，生成失败返回null
      */
     public static String sign(String username) {
         return sign(username, null);
     }
 
     /**
-     * 校验token是否正确
-     * @param token 密钥
-     * @return 是否正确
+     * 验证JWT令牌是否有效
+     *
+     * @param token JWT令牌
+     * @return 有效返回true，否则返回false
      */
     public static boolean verify(String token) {
         try {
@@ -63,8 +73,13 @@ public class JwtUtils {
     }
 
     /**
-     * 获得token中的信息无需secret解密也能获得
-     * @return token中包含的用户名
+     * 从JWT令牌中获取用户名
+     * <p>
+     * 无需密钥即可解析
+     * </p>
+     *
+     * @param token JWT令牌
+     * @return 用户名，解析失败返回null
      */
     public static String getUsername(String token) {
         try {
@@ -76,9 +91,10 @@ public class JwtUtils {
     }
 
     /**
-     * 获得token中的用户ID
-     * @param token JWT token
-     * @return token中包含的用户ID
+     * 从JWT令牌中获取用户ID
+     *
+     * @param token JWT令牌
+     * @return 用户ID，解析失败返回null
      */
     public static Long getUserId(String token) {
         try {
