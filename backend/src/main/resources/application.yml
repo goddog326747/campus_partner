@@ -24,6 +24,10 @@ spring:
     host: 192.168.192.128
     port: 16379
     timeout: 5000
+  elasticsearch:
+    uris: http://192.168.192.128:9200
+    connection-timeout: 10s
+    socket-timeout: 30s
 
 logging:
   level:

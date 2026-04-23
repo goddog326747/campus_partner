@@ -1,6 +1,5 @@
 package com.example.project.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.project.dto.PostQueryRequest;
 import com.example.project.entity.Post;
 
@@ -23,7 +22,7 @@ public interface PostQueryService {
      * @param request 查询请求对象，包含各种筛选条件
      * @return 分页帖子列表
      */
-    Page<Post> queryPosts(PostQueryRequest request);
+    List<Post> queryPosts(PostQueryRequest request);
     
     /**
      * 获取帖子列表（简单查询）

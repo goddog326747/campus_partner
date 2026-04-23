@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.project.mapper.CommentMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.project.entity.Comment">
+        <id column="id" property="id"/>
+        <result column="post_id" property="postId"/>
+        <result column="user_id" property="userId"/>
+        <result column="content" property="content"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, post_id, user_id, content, parent_id, like_count, create_time, update_time
+    </sql>
+
+    <!-- 根据ID查询评论 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM comment
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据帖子ID查询评论列表 -->
+    <select id="selectByPostId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM comment
+        WHERE post_id = #{postId} AND parent_id IS NULL
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据父评论ID查询回复列表 -->
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM comment
+        WHERE parent_id = #{parentId}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 插入评论 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO comment (
+            post_id, user_id, content, parent_id, like_count, create_time, update_time
+        ) VALUES (
+            #{postId}, #{userId}, #{content}, #{parentId}, #{likeCount}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 更新评论 -->
+    <update id="update">
+        UPDATE comment
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除评论 -->
+    <delete id="deleteById">
+        DELETE FROM comment WHERE id = #{id}
+    </delete>
+
+    <!-- 统计指定评论的回复数量 -->
+    <select id="countReplies" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM comment
+        WHERE parent_id = #{commentId}
+    </select>
+
+    <!-- 根据帖子ID统计评论数量 -->
+    <select id="selectCountByPostId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM comment
+        WHERE post_id = #{postId}
+    </select>
+
+</mapper>

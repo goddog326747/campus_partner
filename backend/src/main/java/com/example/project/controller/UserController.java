@@ -1,13 +1,13 @@
 package com.example.project.controller;
 
 import com.example.project.common.Result;
+import com.example.project.dto.UpdateAvatarRequestDTO;
+import com.example.project.dto.UpdatePasswordRequestDTO;
 import com.example.project.entity.User;
 import com.example.project.service.UserService;
 import com.example.project.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 用户控制器
@@ -67,27 +67,24 @@ public class UserController {
     /**
      * 更新当前用户的头像
      *
-     * @param body 包含avatar字段的请求体，avatar为新头像的URL
+     * @param request 包含avatar字段的请求体，avatar为新头像的URL
      * @return 更新后的用户信息
      */
     @PutMapping("/avatar")
-    public Result<User> updateAvatar(@RequestBody Map<String, String> body) {
+    public Result<User> updateAvatar(@RequestBody UpdateAvatarRequestDTO request) {
         Long userId = UserContext.get().getId();
-        String avatar = body.get("avatar");
-        return userService.updateAvatar(userId, avatar);
+        return userService.updateAvatar(userId, request.getAvatar());
     }
 
     /**
      * 修改当前用户的密码
      *
-     * @param body 包含oldPassword和newPassword字段的请求体
+     * @param request 包含oldPassword和newPassword字段的请求体
      * @return 操作结果
      */
     @PutMapping("/password")
-    public Result<String> updatePassword(@RequestBody Map<String, String> body) {
+    public Result<String> updatePassword(@RequestBody UpdatePasswordRequestDTO request) {
         Long userId = UserContext.get().getId();
-        String oldPassword = body.get("oldPassword");
-        String newPassword = body.get("newPassword");
-        return userService.updatePassword(userId, oldPassword, newPassword);
+        return userService.updatePassword(userId, request.getOldPassword(), request.getNewPassword());
     }
 }

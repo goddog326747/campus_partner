@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.project.common.CategoryConstants;
 import com.example.project.common.Result;
+import com.example.project.dto.PostFilterRequestDTO;
 import com.example.project.entity.Post;
 import com.example.project.service.PostService;
 
@@ -81,31 +81,24 @@ public class PostController {
     /**
      * 获取帖子列表（高级筛选，分页）
      *
-     * @param category  分类筛选条件，可选
-     * @param keyword   关键词搜索条件，可选
-     * @param location  地点筛选条件，可选
-     * @param school    学校筛选条件，可选
-     * @param verified  是否已认证筛选，可选
-     * @param gender    性别筛选，可选
-     * @param pageNum   页码，默认为1
-     * @param pageSize  每页大小，默认为10
+     * @param request 筛选请求DTO，包含分类、关键词、地点、学校、认证状态、性别等筛选条件
      * @return 分页帖子列表
      */
     @GetMapping("/list/filter")
-    public Result<Page<Post>> listWithFilter(
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) String school,
-            @RequestParam(required = false) Boolean verified,
-            @RequestParam(required = false) Integer gender,
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize) {
-        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}", 
-                category, keyword, location, school, verified, gender);
+    public Result<List<Post>> listWithFilter(PostFilterRequestDTO request) {
+        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}",
+                request.getCategory(), request.getKeyword(), request.getLocation(), request.getSchool(), request.getVerified(), request.getGender());
         try {
-            Page<Post> page = postService.listPosts(category, keyword, location, school, verified, gender, pageNum, pageSize);
-            return Result.success(page);
+            List<Post> posts = postService.listPosts(
+                    request.getCategory(),
+                    request.getKeyword(),
+                    request.getLocation(),
+                    request.getSchool(),
+                    request.getVerified(),
+                    request.getGender(),
+                    request.getPageNum(),
+                    request.getPageSize());
+            return Result.success(posts);
         } catch (Exception e) {
             logger.error("Error fetching post list with filters", e);
             return Result.error(500, "获取帖子列表失败");

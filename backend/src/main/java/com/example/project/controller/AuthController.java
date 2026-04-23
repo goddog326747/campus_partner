@@ -1,6 +1,8 @@
 package com.example.project.controller;
 
 import com.example.project.common.Result;
+import com.example.project.dto.LoginRequestDTO;
+import com.example.project.dto.vo.LoginResponseVO;
 import com.example.project.entity.User;
 import com.example.project.service.AuthService;
 import com.example.project.service.UserService;
@@ -8,8 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 认证控制器
@@ -35,18 +35,18 @@ public class AuthController {
     /**
      * 用户登录
      *
-     * @param user 登录请求体，包含username和password字段
+     * @param request 登录请求体，包含username和password字段
      * @return 登录结果，成功时返回用户信息和token
      */
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody Map<String, String> user) {
-        String username = user.get("username");
-        String password = user.get("password");
-        
+    public Result<LoginResponseVO> login(@RequestBody LoginRequestDTO request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
+
         logger.info("User login attempt - username: {}", username);
-        
+
         try {
-            Result<Map<String, Object>> result = authService.login(username, password);
+            Result<LoginResponseVO> result = authService.login(username, password);
             if (result.getCode() == 200) {
                 logger.info("User login successful - username: {}", username);
             } else {

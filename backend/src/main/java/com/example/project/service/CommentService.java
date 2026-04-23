@@ -1,7 +1,5 @@
 package com.example.project.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.project.entity.Comment;
 
 import java.util.List;
@@ -9,13 +7,13 @@ import java.util.List;
 /**
  * 评论服务接口
  * <p>
- * 提供评论的增删查、点赞和回复等服务，继承MyBatis-Plus的IService接口
+ * 提供评论的增删查、点赞和回复等服务
  * </p>
  *
  * @author system
  * @since 1.0
  */
-public interface CommentService extends IService<Comment> {
+public interface CommentService {
 
     /**
      * 获取帖子的评论列表（分页，包含用户信息）
@@ -25,7 +23,7 @@ public interface CommentService extends IService<Comment> {
      * @param pageSize 每页大小
      * @return 评论分页列表，包含用户详情
      */
-    Page<Comment> listCommentsByPost(Long postId, Integer pageNum, Integer pageSize);
+    List<Comment> listCommentsByPost(Long postId, Integer pageNum, Integer pageSize);
 
     /**
      * 创建新评论

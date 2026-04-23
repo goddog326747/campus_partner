@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.project.mapper.PostMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.project.entity.Post">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="category" property="category"/>
+        <result column="user_id" property="userId"/>
+        <result column="images" property="images"/>
+        <result column="destination" property="destination"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, title, content, category, user_id, images, destination, create_time, update_time
+    </sql>
+
+    <!-- 根据ID查询帖子 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM post
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有帖子 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM post
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据条件查询帖子列表 -->
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM post
+        <where>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据用户ID查询帖子 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM post
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 插入帖子 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (
+            title, content, category, user_id, images, destination, create_time, update_time
+        ) VALUES (
+            #{title}, #{content}, #{category}, #{userId}, #{images}, #{destination}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 更新帖子 -->
+    <update id="update">
+        UPDATE post
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="images != null">images = #{images},</if>
+            <if test="destination != null">destination = #{destination},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除帖子 -->
+    <delete id="deleteById">
+        DELETE FROM post WHERE id = #{id}
+    </delete>
+
+</mapper>

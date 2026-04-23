@@ -1,8 +1,6 @@
 package com.example.project.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.project.entity.Comment;
 import com.example.project.entity.User;
 import com.example.project.mapper.CommentMapper;
@@ -15,39 +13,42 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
-public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
+public class CommentServiceImpl implements CommentService {
 
     private static final Logger logger = LoggerFactory.getLogger(CommentServiceImpl.class);
+
+    @Autowired
+    private CommentMapper commentMapper;
 
     @Autowired
     private UserMapper userMapper;
 
     @Override
-    public Page<Comment> listCommentsByPost(Long postId, Integer pageNum, Integer pageSize) {
+    public List<Comment> listCommentsByPost(Long postId, Integer pageNum, Integer pageSize) {
         logger.info("Listing comments for postId: {}, page: {}, size: {}", postId, pageNum, pageSize);
 
-        QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
-        queryWrapper.isNull("parent_id"); // Only get top-level comments
-        queryWrapper.orderByAsc("create_time");
-
-        Page<Comment> page = new Page<>(pageNum, pageSize);
-        Page<Comment> result = page(page, queryWrapper);
-
-        // Populate user information (following PostService pattern)
-        populateUserInfo(result.getRecords());
+        List<Comment> comments = commentMapper.selectByPostId(postId);
+        
+        // Populate user information
+        populateUserInfo(comments);
         
         // Populate reply count for each comment
-        populateReplyCount(result.getRecords());
+        populateReplyCount(comments);
 
-        logger.info("Retrieved {} comments for postId: {}", result.getRecords().size(), postId);
-        return result;
+        // Manual pagination
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, comments.size());
+        if (start > comments.size()) {
+            return new ArrayList<>();
+        }
+
+        logger.info("Retrieved {} comments for postId: {}", end - start, postId);
+        return comments.subList(start, end);
     }
 
     @Override
@@ -69,12 +70,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             if (comment.getLikeCount() == null) {
                 comment.setLikeCount(0);
             }
+            comment.setCreateTime(LocalDateTime.now());
+            comment.setUpdateTime(LocalDateTime.now());
 
-            boolean result = save(comment);
-            if (result) {
+            int result = commentMapper.insert(comment);
+            if (result > 0) {
                 logger.info("Successfully created comment with ID: {}", comment.getId());
+                return true;
             }
-            return result;
+            return false;
         } catch (Exception e) {
             logger.error("Error creating comment for postId: {}", comment.getPostId(), e);
             throw e;
@@ -88,7 +92,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         try {
             // Verify ownership
-            Comment comment = getById(commentId);
+            Comment comment = commentMapper.selectById(commentId);
             if (comment == null) {
                 logger.warn("Comment not found: {}", commentId);
                 return false;
@@ -102,16 +106,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             }
 
             // Delete replies first (cascade delete)
-            QueryWrapper<Comment> replyWrapper = new QueryWrapper<>();
-            replyWrapper.eq("parent_id", commentId);
-            remove(replyWrapper);
+            List<Comment> replies = commentMapper.selectByParentId(commentId);
+            for (Comment reply : replies) {
+                commentMapper.deleteById(reply.getId());
+            }
 
             // Delete the comment
-            boolean result = removeById(commentId);
-            if (result) {
+            int result = commentMapper.deleteById(commentId);
+            if (result > 0) {
                 logger.info("Successfully deleted comment: {}", commentId);
+                return true;
             }
-            return result;
+            return false;
         } catch (Exception e) {
             logger.error("Error deleting comment: {}", commentId, e);
             throw e;
@@ -124,18 +130,20 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         logger.info("Toggling like for comment: {}", commentId);
 
         try {
-            Comment comment = getById(commentId);
+            Comment comment = commentMapper.selectById(commentId);
             if (comment == null) {
                 logger.warn("Comment not found: {}", commentId);
                 return 0;
             }
 
-            // Simple increment/decrement logic
-            // In a real system, you'd have a separate like_table to track who liked what
+            // Simple increment logic
             int newCount = comment.getLikeCount() + 1;
-            comment.setLikeCount(newCount);
-
-            updateById(comment);
+            
+            LambdaUpdateWrapper<Comment> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(Comment::getId, commentId)
+                   .set(Comment::getLikeCount, newCount)
+                   .set(Comment::getUpdateTime, LocalDateTime.now());
+            commentMapper.update(null, wrapper);
             logger.info("Updated like count for comment {}: {}", commentId, newCount);
             return newCount;
         } catch (Exception e) {
@@ -148,11 +156,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public List<Comment> listReplies(Long parentCommentId) {
         logger.info("Listing replies for comment: {}", parentCommentId);
 
-        QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("parent_id", parentCommentId);
-        queryWrapper.orderByAsc("create_time");
-
-        List<Comment> replies = list(queryWrapper);
+        List<Comment> replies = commentMapper.selectByParentId(parentCommentId);
         populateUserInfo(replies);
 
         logger.info("Retrieved {} replies for comment: {}", replies.size(), parentCommentId);
@@ -161,34 +165,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     /**
      * Populate user information (username, avatar) for comments
-     * Follows the same pattern as PostServiceImpl
      */
     private void populateUserInfo(List<Comment> comments) {
         if (comments == null || comments.isEmpty()) {
             return;
         }
 
-        // Extract unique user IDs
-        Set<Long> userIds = comments.stream()
-                .map(Comment::getUserId)
-                .filter(id -> id != null)
-                .collect(Collectors.toSet());
-
-        if (!userIds.isEmpty()) {
-            // Batch query user information
-            List<User> users = userMapper.selectBatchIds(userIds);
-            Map<Long, User> userMap = users.stream()
-                    .collect(Collectors.toMap(User::getId, user -> user));
-
-            // Populate comment user info
-            for (Comment comment : comments) {
-                if (comment.getUserId() != null) {
-                    User user = userMap.get(comment.getUserId());
-                    if (user != null) {
-                        // Priority: nickname > username
-                        comment.setUsername(user.getNickname() != null ? user.getNickname() : user.getUsername());
-                        comment.setAvatar(user.getAvatar());
-                    }
+        for (Comment comment : comments) {
+            if (comment.getUserId() != null) {
+                User user = userMapper.selectById(comment.getUserId());
+                if (user != null) {
+                    comment.setUsername(user.getNickname() != null ? user.getNickname() : user.getUsername());
+                    comment.setAvatar(user.getAvatar());
                 }
             }
         }
@@ -203,7 +191,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         for (Comment comment : comments) {
-            Integer replyCount = baseMapper.countReplies(comment.getId());
+            Integer replyCount = commentMapper.countReplies(comment.getId());
             comment.setReplyCount(replyCount != null ? replyCount : 0);
         }
     }

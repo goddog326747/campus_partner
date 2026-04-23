@@ -1,12 +1,16 @@
 package com.example.project.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.example.project.entity.Post;
+import com.example.project.entity.User;
+import com.example.project.mapper.PostMapper;
+import com.example.project.mapper.UserMapper;
+import com.example.project.service.PostService;
+import com.example.project.service.PostSyncService;
+import com.example.project.storage.StorageService;
+import com.example.project.storage.StorageServiceFactory;
+import com.example.project.util.UserContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,32 +18,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.example.project.entity.Post;
-import com.example.project.entity.User;
-import com.example.project.mapper.PostMapper;
-import com.example.project.mapper.UserMapper;
-import com.example.project.service.PostService;
-import com.example.project.service.helper.PostFilterHelper;
-import com.example.project.storage.StorageService;
-import com.example.project.storage.StorageServiceFactory;
-import com.example.project.util.UserContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
-public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
+public class PostServiceImpl implements PostService {
 
     private static final Logger logger = LoggerFactory.getLogger(PostServiceImpl.class);
     private static final String IMAGE_DIRECTORY = "post";
 
     @Autowired
-    private UserMapper userMapper;
+    private PostMapper postMapper;
 
     @Autowired
-    private PostFilterHelper postFilterHelper;
+    private UserMapper userMapper;
 
     @Autowired
     private StorageServiceFactory storageServiceFactory;
@@ -47,38 +40,21 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private PostSyncService postSyncService;
+
     @Override
     public List<Post> listPosts(String category, String keyword) {
         logger.info("Listing posts - category: {}, keyword: {}", category, keyword);
         try {
-            QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-            if (StringUtils.hasText(category)) {
-                queryWrapper.eq("category", category);
-            }
-            if (StringUtils.hasText(keyword)) {
-                queryWrapper.and(wrapper -> wrapper.like("title", keyword).or().like("content", keyword));
-            }
-            queryWrapper.orderByDesc("create_time");
+            List<Post> posts = postMapper.selectByCondition(category, keyword);
             
-            List<Post> posts = baseMapper.selectList(queryWrapper);
-            
-            if (!posts.isEmpty()) {
-                Set<Long> userIds = posts.stream()
-                        .map(Post::getUserId)
-                        .filter(id -> id != null)
-                        .collect(Collectors.toSet());
-                
-                if (!userIds.isEmpty()) {
-                    List<User> users = userMapper.selectBatchIds(userIds);
-                    Map<Long, String> userMap = users.stream()
-                            .collect(Collectors.toMap(User::getId, user -> {
-                                return StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername();
-                            }));
-                    
-                    for (Post post : posts) {
-                        if (post.getUserId() != null) {
-                            post.setUsername(userMap.get(post.getUserId()));
-                        }
+            // Populate user information
+            for (Post post : posts) {
+                if (post.getUserId() != null) {
+                    User user = userMapper.selectById(post.getUserId());
+                    if (user != null) {
+                        post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
                     }
                 }
             }
@@ -92,30 +68,53 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public Page<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize) {
+    public List<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize) {
         logger.info("Listing posts with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}", 
                 category, keyword, location, school, verified, gender);
         
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
+        // For now, use basic condition query. Advanced filtering can be added in XML
+        List<Post> posts = postMapper.selectByCondition(category, keyword);
         
-        if (StringUtils.hasText(category)) {
-            queryWrapper.eq("category", category);
+        // Populate user information with filters
+        List<Post> filteredPosts = new ArrayList<>();
+        for (Post post : posts) {
+            if (post.getUserId() != null) {
+                User user = userMapper.selectById(post.getUserId());
+                if (user != null) {
+                    // Apply user filters
+                    if (location != null && !location.isEmpty() && !location.equals(user.getLocation())) {
+                        continue;
+                    }
+                    if (school != null && !school.isEmpty() && !school.equals(user.getSchool())) {
+                        continue;
+                    }
+                    if (verified != null && !verified.equals(user.getVerified())) {
+                        continue;
+                    }
+                    if (gender != null && !gender.equals(user.getGender())) {
+                        continue;
+                    }
+                    
+                    post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
+                    post.setAvatar(user.getAvatar());
+                    post.setUserLocation(user.getLocation());
+                    post.setUserSchool(user.getSchool());
+                    post.setUserVerified(user.getVerified());
+                    post.setUserGender(user.getGender());
+                }
+            }
+            filteredPosts.add(post);
         }
-        if (StringUtils.hasText(keyword)) {
-            queryWrapper.and(wrapper -> wrapper.like("title", keyword).or().like("content", keyword));
+        
+        // Manual pagination
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, filteredPosts.size());
+        if (start > filteredPosts.size()) {
+            return new ArrayList<>();
         }
         
-        postFilterHelper.applyUserFilters(queryWrapper, location, school, verified, gender);
-        
-        queryWrapper.orderByDesc("create_time");
-        
-        Page<Post> page = new Page<>(pageNum, pageSize);
-        Page<Post> resultPage = baseMapper.selectPage(page, queryWrapper);
-        
-        postFilterHelper.populateUserInfo(resultPage.getRecords());
-        
-        logger.info("Successfully retrieved {} posts (total: {})", resultPage.getRecords().size(), resultPage.getTotal());
-        return resultPage;
+        logger.info("Successfully retrieved {} posts (total: {})", end - start, filteredPosts.size());
+        return filteredPosts.subList(start, end);
     }
 
     @Override
@@ -128,13 +127,16 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
                 post.setUserId(UserContext.get().getId());
                 logger.debug("Setting post userId from UserContext: {}", UserContext.get().getId());
             }
-            boolean result = save(post);
-            if (result) {
+            int result = postMapper.insert(post);
+            if (result > 0) {
                 logger.info("Successfully created post with ID: {}", post.getId());
+                // 同步到 ES
+                postSyncService.syncPost(post);
+                return true;
             } else {
                 logger.error("Failed to create post - title: {}", post.getTitle());
+                return false;
             }
-            return result;
         } catch (Exception e) {
             logger.error("Error creating post - title: {}", post.getTitle(), e);
             throw e;
@@ -143,7 +145,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public Post getPostById(Long id) {
-        Post post = baseMapper.selectById(id);
+        Post post = postMapper.selectById(id);
         if (post != null && post.getUserId() != null) {
             User user = userMapper.selectById(post.getUserId());
             if (user != null) {
@@ -160,10 +162,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public List<Post> getPostsByUserId(Long userId) {
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_id", userId);
-        queryWrapper.orderByDesc("create_time");
-        List<Post> posts = baseMapper.selectList(queryWrapper);
+        List<Post> posts = postMapper.selectByUserId(userId);
         
         User user = userMapper.selectById(userId);
         if (user != null) {
@@ -201,7 +200,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public void deletePost(Long postId) {
         logger.info("Deleting post - id: {}", postId);
-        Post post = baseMapper.selectById(postId);
+        Post post = postMapper.selectById(postId);
         if (post != null && StringUtils.hasText(post.getImages())) {
             try {
                 List<String> imageUrls = objectMapper.readValue(post.getImages(), List.class);
@@ -217,7 +216,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
                 logger.warn("Failed to parse images JSON for post: {}", postId, e);
             }
         }
-        baseMapper.deleteById(postId);
+        postMapper.deleteById(postId);
+        // 从 ES 删除
+        postSyncService.deletePostFromEs(postId);
         logger.info("Successfully deleted post - id: {}", postId);
     }
 }

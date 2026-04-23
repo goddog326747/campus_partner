@@ -1,0 +1,75 @@
+{
+  "properties": {
+    "id": {
+      "type": "long"
+    },
+    "title": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "content": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart"
+    },
+    "category": {
+      "type": "keyword"
+    },
+    "userId": {
+      "type": "long"
+    },
+    "images": {
+      "type": "keyword"
+    },
+    "destination": {
+      "type": "text",
+      "analyzer": "ik_max_word",
+      "search_analyzer": "ik_smart",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "createTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd HH:mm:ss"
+    },
+    "updateTime": {
+      "type": "date",
+      "format": "yyyy-MM-dd HH:mm:ss"
+    },
+    "username": {
+      "type": "keyword"
+    },
+    "avatar": {
+      "type": "keyword"
+    },
+    "userLocation": {
+      "type": "keyword"
+    },
+    "userSchool": {
+      "type": "keyword"
+    },
+    "userVerified": {
+      "type": "integer"
+    },
+    "userGender": {
+      "type": "integer"
+    },
+    "commentCount": {
+      "type": "integer"
+    },
+    "likeCount": {
+      "type": "integer"
+    }
+  }
+}

@@ -1,7 +1,6 @@
 package com.example.project.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.project.common.Result;
 import com.example.project.entity.User;
 import com.example.project.mapper.UserMapper;
@@ -9,6 +8,9 @@ import com.example.project.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -76,10 +78,7 @@ public class UserServiceImpl implements UserService {
         }
         
         user.setId(id);
-        user.setUsername(null);
-        user.setPassword(null);
-        user.setStatus(null);
-        user.setCreateTime(null);
+        user.setUpdateTime(LocalDateTime.now());
         
         userMapper.updateById(user);
         
@@ -95,9 +94,11 @@ public class UserServiceImpl implements UserService {
             return Result.error(404, "用户不存在");
         }
         
-        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("id", id).set("avatar", avatar);
-        userMapper.update(null, updateWrapper);
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id)
+               .set(User::getAvatar, avatar)
+               .set(User::getUpdateTime, LocalDateTime.now());
+        userMapper.update(null, wrapper);
         
         User updatedUser = userMapper.selectById(id);
         updatedUser.setPassword(null);
@@ -115,9 +116,11 @@ public class UserServiceImpl implements UserService {
             return Result.error(400, "原密码错误");
         }
         
-        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("id", id).set("password", newPassword);
-        userMapper.update(null, updateWrapper);
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id)
+               .set(User::getPassword, newPassword)
+               .set(User::getUpdateTime, LocalDateTime.now());
+        userMapper.update(null, wrapper);
         
         return Result.success("密码修改成功", null);
     }
@@ -128,9 +131,8 @@ public class UserServiceImpl implements UserService {
             return Result.error(400, "用户名和密码不能为空");
         }
         
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", user.getUsername());
-        if (userMapper.selectCount(queryWrapper) > 0) {
+        User existUser = userMapper.selectByUsername(user.getUsername());
+        if (existUser != null) {
             return Result.error(400, "用户名已存在");
         }
         
@@ -140,6 +142,8 @@ public class UserServiceImpl implements UserService {
         user.setStatus(1);
         user.setPrivacyProfile(0);
         user.setPrivacyContact(1);
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
         
         userMapper.insert(user);
         

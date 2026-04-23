@@ -1,8 +1,8 @@
 package com.example.project.service;
 
 import com.example.project.common.Result;
+import com.example.project.dto.vo.LoginResponseVO;
 import com.example.project.entity.User;
-import java.util.Map;
 
 /**
  * 认证服务接口
@@ -14,7 +14,7 @@ import java.util.Map;
  * @since 1.0
  */
 public interface AuthService {
-    
+
     /**
      * 用户登录验证
      *
@@ -22,7 +22,7 @@ public interface AuthService {
      * @param password 密码
      * @return 登录结果，成功时返回用户信息和token
      */
-    Result<Map<String, Object>> login(String username, String password);
+    Result<LoginResponseVO> login(String username, String password);
     
     /**
      * 获取当前登录用户信息

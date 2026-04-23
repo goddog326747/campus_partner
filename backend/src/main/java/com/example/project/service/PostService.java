@@ -1,7 +1,5 @@
 package com.example.project.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.project.entity.Post;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,13 +8,13 @@ import java.util.List;
 /**
  * 帖子服务接口
  * <p>
- * 提供帖子的增删改查服务，继承MyBatis-Plus的IService接口
+ * 提供帖子的增删改查服务
  * </p>
  *
  * @author system
  * @since 1.0
  */
-public interface PostService extends IService<Post> {
+public interface PostService {
     
     /**
      * 获取帖子列表（简单查询）
@@ -40,7 +38,7 @@ public interface PostService extends IService<Post> {
      * @param pageSize  每页大小
      * @return 分页帖子列表
      */
-    Page<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize);
+    List<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize);
     
     /**
      * 创建新帖子

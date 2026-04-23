@@ -1,6 +1,5 @@
 package com.example.project.shiro;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.project.entity.User;
 import com.example.project.mapper.UserMapper;
 import com.example.project.util.JwtUtils;
@@ -62,9 +61,7 @@ public class UserRealm extends AuthorizingRealm {
         }
 
         // 查询数据库
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
-        User user = userMapper.selectOne(queryWrapper);
+        User user = userMapper.selectByUsername(username);
         
         if (user == null) {
             logger.warn("User not found in database: {}", username);

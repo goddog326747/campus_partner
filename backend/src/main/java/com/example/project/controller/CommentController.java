@@ -1,7 +1,7 @@
 package com.example.project.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.project.common.Result;
+import com.example.project.dto.CommentQueryRequestDTO;
 import com.example.project.entity.Comment;
 import com.example.project.service.CommentService;
 import org.slf4j.Logger;
@@ -32,22 +32,17 @@ public class CommentController {
     /**
      * 获取帖子的评论列表（分页）
      *
-     * @param postId   帖子ID
-     * @param pageNum  页码（从1开始）
-     * @param pageSize 每页大小
+     * @param request 评论查询请求DTO，包含帖子ID、页码、每页大小
      * @return 评论分页列表
      */
     @GetMapping("/list")
-    public Result<Page<Comment>> listComments(
-            @RequestParam Long postId,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-        logger.info("Fetching comments for postId: {}, page: {}, size: {}", postId, pageNum, pageSize);
+    public Result<List<Comment>> listComments(CommentQueryRequestDTO request) {
+        logger.info("Fetching comments for postId: {}, page: {}, size: {}", request.getPostId(), request.getPageNum(), request.getPageSize());
         try {
-            Page<Comment> page = commentService.listCommentsByPost(postId, pageNum, pageSize);
-            return Result.success(page);
+            List<Comment> comments = commentService.listCommentsByPost(request.getPostId(), request.getPageNum(), request.getPageSize());
+            return Result.success(comments);
         } catch (Exception e) {
-            logger.error("Error fetching comments for postId: {}", postId, e);
+            logger.error("Error fetching comments for postId: {}", request.getPostId(), e);
             return Result.error(500, "获取评论列表失败");
         }
     }

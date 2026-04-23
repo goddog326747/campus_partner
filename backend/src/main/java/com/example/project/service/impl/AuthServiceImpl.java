@@ -1,7 +1,7 @@
 package com.example.project.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.project.common.Result;
+import com.example.project.dto.vo.LoginResponseVO;
 import com.example.project.entity.User;
 import com.example.project.mapper.UserMapper;
 import com.example.project.service.AuthService;
@@ -10,9 +10,6 @@ import com.example.project.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -20,21 +17,19 @@ public class AuthServiceImpl implements AuthService {
     private UserMapper userMapper;
 
     @Override
-    public Result<Map<String, Object>> login(String username, String password) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
-        User user = userMapper.selectOne(queryWrapper);
+    public Result<LoginResponseVO> login(String username, String password) {
+        User user = userMapper.selectByUsername(username);
 
         if (user != null && user.getPassword().equals(password)) {
             String token = JwtUtils.sign(username, user.getId());
 
-            Map<String, Object> data = new HashMap<>();
-            data.put("token", token);
-
             user.setPassword(null);
-            data.put("userInfo", user);
+            LoginResponseVO response = LoginResponseVO.builder()
+                    .token(token)
+                    .userInfo(user)
+                    .build();
 
-            return Result.success("登录成功", data);
+            return Result.success("登录成功", response);
         } else {
             return Result.error(401, "用户名或密码错误");
         }
