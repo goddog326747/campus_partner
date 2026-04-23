@@ -1,17 +1,16 @@
 package com.example.project.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.example.project.document.PostDocument;
+import com.example.project.elasticsearch.document.PostDocument;
+import com.example.project.elasticsearch.repository.PostSearchRepository;
 import com.example.project.entity.Post;
 import com.example.project.entity.User;
 import com.example.project.mapper.CommentMapper;
 import com.example.project.mapper.PostMapper;
 import com.example.project.mapper.UserMapper;
-import com.example.project.repository.PostSearchRepository;
 import com.example.project.service.PostSyncService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -30,48 +29,41 @@ import java.util.stream.Collectors;
  * @author system
  * @since 1.0
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class PostSyncServiceImpl implements PostSyncService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PostSyncServiceImpl.class);
-
-    @Autowired
-    private PostSearchRepository postSearchRepository;
-
-    @Autowired
-    private PostMapper postMapper;
-
-    @Autowired
-    private UserMapper userMapper;
-
-    @Autowired
-    private CommentMapper commentMapper;
+    private final PostSearchRepository postSearchRepository;
+    private final PostMapper postMapper;
+    private final UserMapper userMapper;
+    private final CommentMapper commentMapper;
 
     @Override
     @Async
     public void syncPost(Long postId) {
-        logger.info("Syncing post to ES - postId: {}", postId);
+        log.info("Syncing post to ES - postId: {}", postId);
         try {
             Post post = postMapper.selectById(postId);
             if (post != null) {
                 syncPost(post);
             } else {
-                logger.warn("Post not found - postId: {}", postId);
+                log.warn("Post not found - postId: {}", postId);
             }
         } catch (Exception e) {
-            logger.error("Error syncing post to ES - postId: {}", postId, e);
+            log.error("Error syncing post to ES - postId: {}", postId, e);
         }
     }
 
     @Override
     public void syncPost(Post post) {
-        logger.info("Syncing post to ES - postId: {}, title: {}", post.getId(), post.getTitle());
+        log.info("Syncing post to ES - postId: {}, title: {}", post.getId(), post.getTitle());
         try {
             PostDocument document = convertToDocument(post);
             postSearchRepository.save(document);
-            logger.info("Successfully synced post to ES - postId: {}", post.getId());
+            log.info("Successfully synced post to ES - postId: {}", post.getId());
         } catch (Exception e) {
-            logger.error("Error syncing post to ES - postId: {}", post.getId(), e);
+            log.error("Error syncing post to ES - postId: {}", post.getId(), e);
         }
     }
 
@@ -80,45 +72,45 @@ public class PostSyncServiceImpl implements PostSyncService {
         if (CollectionUtils.isEmpty(posts)) {
             return;
         }
-        logger.info("Batch syncing {} posts to ES", posts.size());
+        log.info("Batch syncing {} posts to ES", posts.size());
         try {
             List<PostDocument> documents = posts.stream()
                     .map(this::convertToDocument)
                     .collect(Collectors.toList());
             postSearchRepository.saveAll(documents);
-            logger.info("Successfully batch synced {} posts to ES", posts.size());
+            log.info("Successfully batch synced {} posts to ES", posts.size());
         } catch (Exception e) {
-            logger.error("Error batch syncing posts to ES", e);
+            log.error("Error batch syncing posts to ES", e);
         }
     }
 
     @Override
     public void deletePostFromEs(Long postId) {
-        logger.info("Deleting post from ES - postId: {}", postId);
+        log.info("Deleting post from ES - postId: {}", postId);
         try {
             postSearchRepository.deleteById(postId);
-            logger.info("Successfully deleted post from ES - postId: {}", postId);
+            log.info("Successfully deleted post from ES - postId: {}", postId);
         } catch (Exception e) {
-            logger.error("Error deleting post from ES - postId: {}", postId, e);
+            log.error("Error deleting post from ES - postId: {}", postId, e);
         }
     }
 
     @Override
     public void syncAllPosts() {
-        logger.info("Starting full sync of all posts to ES");
+        log.info("Starting full sync of all posts to ES");
         try {
             List<Post> allPosts = postMapper.selectList(null);
-            logger.info("Found {} posts to sync", allPosts.size());
+            log.info("Found {} posts to sync", allPosts.size());
 
             int batchSize = 100;
             for (int i = 0; i < allPosts.size(); i += batchSize) {
                 List<Post> batch = allPosts.subList(i, Math.min(i + batchSize, allPosts.size()));
                 syncPosts(batch);
-                logger.info("Synced batch {}/{} to ES", (i / batchSize) + 1, (allPosts.size() + batchSize - 1) / batchSize);
+                log.info("Synced batch {}/{} to ES", (i / batchSize) + 1, (allPosts.size() + batchSize - 1) / batchSize);
             }
-            logger.info("Full sync completed - total posts: {}", allPosts.size());
+            log.info("Full sync completed - total posts: {}", allPosts.size());
         } catch (Exception e) {
-            logger.error("Error during full sync", e);
+            log.error("Error during full sync", e);
         }
     }
 
@@ -140,7 +132,7 @@ public class PostSyncServiceImpl implements PostSyncService {
                 List<String> imageList = JSON.parseArray(post.getImages(), String.class);
                 document.setImages(imageList);
             } catch (Exception e) {
-                logger.warn("Failed to parse images JSON for post: {}", post.getId());
+                log.warn("Failed to parse images JSON for post: {}", post.getId());
                 document.setImages(new ArrayList<>());
             }
         } else {
@@ -165,7 +157,7 @@ public class PostSyncServiceImpl implements PostSyncService {
             Integer commentCount = commentMapper.selectCountByPostId(post.getId());
             document.setCommentCount(commentCount != null ? commentCount : 0);
         } catch (Exception e) {
-            logger.warn("Failed to get comment count for post: {}", post.getId());
+            log.warn("Failed to get comment count for post: {}", post.getId());
             document.setCommentCount(0);
         }
 

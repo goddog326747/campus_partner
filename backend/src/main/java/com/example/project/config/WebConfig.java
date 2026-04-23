@@ -1,6 +1,6 @@
 package com.example.project.config;
 
-import com.example.project.storage.StorageProperties;
+import com.example.project.service.storage.StorageProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

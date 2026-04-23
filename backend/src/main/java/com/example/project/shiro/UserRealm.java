@@ -2,7 +2,7 @@ package com.example.project.shiro;
 
 import com.example.project.entity.User;
 import com.example.project.mapper.UserMapper;
-import com.example.project.util.JwtUtils;
+import com.example.project.shiro.util.JwtUtils;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;

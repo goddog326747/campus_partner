@@ -1,6 +1,6 @@
 package com.example.project.service;
 
-import com.example.project.document.PostDocument;
+import com.example.project.elasticsearch.document.PostDocument;
 import com.example.project.entity.Post;
 
 import java.util.List;

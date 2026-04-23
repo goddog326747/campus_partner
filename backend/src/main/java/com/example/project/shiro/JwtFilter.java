@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.example.project.entity.User;
-import com.example.project.util.JwtUtils;
-import com.example.project.util.UserContext;
+import com.example.project.shiro.util.JwtUtils;
+import com.example.project.shiro.util.UserContext;
 
 /**
  * JWT过滤器，拦截请求并进行Token校验

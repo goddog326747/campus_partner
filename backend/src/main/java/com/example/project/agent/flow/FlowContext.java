@@ -1,5 +1,10 @@
 package com.example.project.agent.flow;
 
+import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
+import com.example.project.agent.flow.enums.FlowStatus;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * ============================================================
  */
+@Getter
 public class FlowContext {
     
     private final String flowId;
@@ -130,18 +136,6 @@ public class FlowContext {
         this.endTime = LocalDateTime.now();
     }
     
-    // ============ Getters ============
-    
-    public String getFlowId() { return flowId; }
-    public String getExecutionId() { return executionId; }
-    public Map<String, Object> getInitialInput() { return Collections.unmodifiableMap(initialInput); }
-    public Map<String, FlowNodeExecutionResult> getNodeResults() { return Collections.unmodifiableMap(nodeResults); }
-    public Map<String, Object> getVariables() { return Collections.unmodifiableMap(variables); }
-    public List<ExecutionStep> getExecutionHistory() { return Collections.unmodifiableList(executionHistory); }
-    public LocalDateTime getStartTime() { return startTime; }
-    public LocalDateTime getEndTime() { return endTime; }
-    public FlowStatus getStatus() { return status; }
-    
     @SuppressWarnings("unchecked")
     public <T> T getInput(String key) {
         return (T) initialInput.get(key);
@@ -160,22 +154,12 @@ public class FlowContext {
     /**
      * 执行步骤记录
      */
+    @Getter
+    @AllArgsConstructor
     public static class ExecutionStep {
         private final String nodeId;
         private final String nodeName;
         private final boolean success;
         private final LocalDateTime timestamp;
-        
-        public ExecutionStep(String nodeId, String nodeName, boolean success, LocalDateTime timestamp) {
-            this.nodeId = nodeId;
-            this.nodeName = nodeName;
-            this.success = success;
-            this.timestamp = timestamp;
-        }
-        
-        public String getNodeId() { return nodeId; }
-        public String getNodeName() { return nodeName; }
-        public boolean isSuccess() { return success; }
-        public LocalDateTime getTimestamp() { return timestamp; }
     }
 }

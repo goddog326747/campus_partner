@@ -6,7 +6,7 @@ import com.example.project.entity.User;
 import com.example.project.mapper.CommentMapper;
 import com.example.project.mapper.UserMapper;
 import com.example.project.service.CommentService;
-import com.example.project.util.UserContext;
+import com.example.project.shiro.util.UserContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

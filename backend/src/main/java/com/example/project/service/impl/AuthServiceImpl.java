@@ -5,8 +5,8 @@ import com.example.project.dto.vo.LoginResponseVO;
 import com.example.project.entity.User;
 import com.example.project.mapper.UserMapper;
 import com.example.project.service.AuthService;
-import com.example.project.util.JwtUtils;
-import com.example.project.util.UserContext;
+import com.example.project.shiro.util.JwtUtils;
+import com.example.project.shiro.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

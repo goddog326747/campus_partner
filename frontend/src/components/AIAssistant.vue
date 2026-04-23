@@ -114,16 +114,20 @@ const fetchQwenResponse = async (text) => {
   scrollToBottom()
 
   try {
-    // 调用后端接口
-    const res = await http.post('/ai/chat', { text: text })
+    // 调用后端接口 - 使用新的 API 格式
+    const res = await http.post('/ai/chat', { 
+      message: text,
+      mode: 'SIMPLE'  // 默认使用简单模式，可以根据需要切换为 'REACT'
+    })
     
     // 移除加载消息
     messages.value.pop()
 
-    if (res.code === 200) {
+    if (res.code === 200 && res.data) {
+      // 新的 API 返回格式: { reply, executionId, executionTime, nodesExecuted }
       messages.value.push({
         role: 'ai',
-        content: res.data
+        content: res.data.reply || '抱歉，我没有理解您的问题。'
       })
     } else {
       messages.value.push({

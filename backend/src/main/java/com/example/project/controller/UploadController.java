@@ -1,8 +1,8 @@
 package com.example.project.controller;
 
 import com.example.project.common.Result;
-import com.example.project.storage.StorageService;
-import com.example.project.storage.StorageServiceFactory;
+import com.example.project.service.storage.StorageService;
+import com.example.project.service.storage.StorageServiceFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

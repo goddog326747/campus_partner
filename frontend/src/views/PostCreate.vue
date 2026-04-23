@@ -208,29 +208,33 @@ const generateWithAi = async () => {
   aiGenerating.value = true
   
   try {
-    const res = await aiGeneratePost({
+    // 构建请求参数 - 使用新的 API 格式
+    const requestData = {
       topic: aiForm.topic,
       category: aiForm.category || undefined,
-      destination: aiForm.destination || undefined,
-      style: aiForm.style || undefined
-    })
+      style: aiForm.style || undefined,
+      requirements: aiForm.destination ? `目的地：${aiForm.destination}` : undefined
+    }
     
-    if (res.code === 200) {
-      form.title = res.data.title
-      form.content = res.data.content
+    const res = await aiGeneratePost(requestData)
+    
+    if (res.code === 200 && res.data) {
+      // 新的 API 返回格式: { title, content, category, executionId, executionTime, nodesExecuted }
+      form.title = res.data.title || ''
+      form.content = res.data.content || ''
+      
+      // 如果返回了分类且当前未选择分类，则自动选择
       if (res.data.category && !selectedPartition.value) {
         selectedPartition.value = res.data.category
       }
-      if (res.data.destination && !form.destination) {
-        form.destination = res.data.destination
-      }
+      
       ElMessage.success('AI 生成成功，可继续编辑')
       showAiDialog.value = false
     } else {
       ElMessage.error(res.msg || 'AI 生成失败')
     }
   } catch (e) {
-    console.error(e)
+    console.error('AI 生成失败:', e)
     ElMessage.error('AI 生成失败，请稍后重试')
   } finally {
     aiGenerating.value = false

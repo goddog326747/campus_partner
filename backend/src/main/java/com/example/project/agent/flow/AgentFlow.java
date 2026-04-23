@@ -1,8 +1,12 @@
 package com.example.project.agent.flow;
 
+import com.example.project.agent.flow.dto.FlowResult;
+import com.example.project.agent.flow.enums.FlowMode;
+import lombok.Builder;
+import lombok.Getter;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 /**
  * Agent Flow 链路执行引擎
@@ -31,6 +35,7 @@ import java.util.function.Function;
  * 
  * ============================================================
  */
+@Getter
 public class AgentFlow {
     
     private final String flowId;
@@ -39,16 +44,20 @@ public class AgentFlow {
     private final List<FlowEdge> edges;
     private final FlowMode mode;
     
-    private AgentFlow(Builder builder) {
-        this.flowId = builder.flowId;
-        this.name = builder.name;
-        this.nodes = new HashMap<>(builder.nodes);
-        this.edges = new ArrayList<>(builder.edges);
-        this.mode = builder.mode;
-    }
-    
-    public static Builder builder() {
-        return new Builder();
+    @Builder
+    public AgentFlow(String flowId, String name, 
+                     Map<String, FlowNode> nodes, 
+                     List<FlowEdge> edges, 
+                     FlowMode mode) {
+        this.flowId = flowId != null ? flowId : UUID.randomUUID().toString();
+        this.name = name != null ? name : "UnnamedFlow";
+        this.nodes = new HashMap<>(nodes != null ? nodes : new HashMap<>());
+        this.edges = new ArrayList<>(edges != null ? edges : new ArrayList<>());
+        this.mode = mode != null ? mode : FlowMode.PLANNING;
+        
+        if (this.nodes.isEmpty()) {
+            throw new IllegalStateException("Flow must have at least one node");
+        }
     }
     
     /**
@@ -70,14 +79,6 @@ public class AgentFlow {
         return CompletableFuture.supplyAsync(() -> execute(initialInput));
     }
     
-    // ============ Getters ============
-    
-    public String getFlowId() { return flowId; }
-    public String getName() { return name; }
-    public Map<String, FlowNode> getNodes() { return Collections.unmodifiableMap(nodes); }
-    public List<FlowEdge> getEdges() { return Collections.unmodifiableList(edges); }
-    public FlowMode getMode() { return mode; }
-    
     public FlowNode getNode(String nodeId) {
         return nodes.get(nodeId);
     }
@@ -96,59 +97,5 @@ public class AgentFlow {
         return nodes.values().stream()
                 .filter(n -> !targetNodes.contains(n.getNodeId()))
                 .collect(java.util.stream.Collectors.toList());
-    }
-    
-    /**
-     * 流程构建器
-     */
-    public static class Builder {
-        private String flowId = UUID.randomUUID().toString();
-        private String name = "UnnamedFlow";
-        private Map<String, FlowNode> nodes = new HashMap<>();
-        private List<FlowEdge> edges = new ArrayList<>();
-        private FlowMode mode = FlowMode.PLANNING;
-        
-        public Builder flowId(String flowId) {
-            this.flowId = flowId;
-            return this;
-        }
-        
-        public Builder name(String name) {
-            this.name = name;
-            return this;
-        }
-        
-        public Builder mode(FlowMode mode) {
-            this.mode = mode;
-            return this;
-        }
-        
-        public Builder addNode(FlowNode node) {
-            this.nodes.put(node.getNodeId(), node);
-            return this;
-        }
-        
-        public Builder addEdge(String fromNodeId, String toNodeId) {
-            return addEdge(fromNodeId, toNodeId, null);
-        }
-        
-        public Builder addEdge(String fromNodeId, String toNodeId, Function<FlowContext, Boolean> condition) {
-            this.edges.add(new FlowEdge(fromNodeId, toNodeId, condition));
-            return this;
-        }
-        
-        public Builder addSequentialEdge(String fromNodeId, String toNodeId) {
-            return addEdge(fromNodeId, toNodeId, ctx -> {
-                FlowNodeExecutionResult lastResult = ctx.getLastResult();
-                return lastResult != null && lastResult.isSuccess();
-            });
-        }
-        
-        public AgentFlow build() {
-            if (nodes.isEmpty()) {
-                throw new IllegalStateException("Flow must have at least one node");
-            }
-            return new AgentFlow(this);
-        }
     }
 }

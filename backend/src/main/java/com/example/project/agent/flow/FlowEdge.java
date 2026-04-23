@@ -1,5 +1,10 @@
 package com.example.project.agent.flow;
 
+import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
 import java.util.function.Function;
 
 /**
@@ -29,30 +34,18 @@ import java.util.function.Function;
  * 
  * ============================================================
  */
+@Getter
+@Builder
+@AllArgsConstructor
 public class FlowEdge {
     
     private final String fromNodeId;
     private final String toNodeId;
     private final Function<FlowContext, Boolean> condition;
-    private final EdgeType type;
-    private final String label;
-    
-    public FlowEdge(String fromNodeId, String toNodeId) {
-        this(fromNodeId, toNodeId, null, EdgeType.SEQUENTIAL, null);
-    }
-    
-    public FlowEdge(String fromNodeId, String toNodeId, Function<FlowContext, Boolean> condition) {
-        this(fromNodeId, toNodeId, condition, EdgeType.CONDITIONAL, null);
-    }
-    
-    public FlowEdge(String fromNodeId, String toNodeId, Function<FlowContext, Boolean> condition, 
-                    EdgeType type, String label) {
-        this.fromNodeId = fromNodeId;
-        this.toNodeId = toNodeId;
-        this.condition = condition;
-        this.type = type;
-        this.label = label;
-    }
+    @Builder.Default
+    private final EdgeType type = EdgeType.SEQUENTIAL;
+    @Builder.Default
+    private final String label = "";
     
     /**
      * 判断是否可以通过此边流转
@@ -64,43 +57,61 @@ public class FlowEdge {
         return condition.apply(context);
     }
     
-    // ============ Getters ============
-    
-    public String getFromNodeId() { return fromNodeId; }
-    public String getToNodeId() { return toNodeId; }
-    public EdgeType getType() { return type; }
-    public String getLabel() { return label; }
-    
     /**
      * 创建顺序边
      */
     public static FlowEdge sequential(String from, String to) {
-        return new FlowEdge(from, to, null, EdgeType.SEQUENTIAL, "sequential");
+        return FlowEdge.builder()
+                .fromNodeId(from)
+                .toNodeId(to)
+                .type(EdgeType.SEQUENTIAL)
+                .label("sequential")
+                .build();
     }
     
     /**
      * 创建条件边
      */
     public static FlowEdge conditional(String from, String to, Function<FlowContext, Boolean> condition, String label) {
-        return new FlowEdge(from, to, condition, EdgeType.CONDITIONAL, label);
+        return FlowEdge.builder()
+                .fromNodeId(from)
+                .toNodeId(to)
+                .condition(condition)
+                .type(EdgeType.CONDITIONAL)
+                .label(label)
+                .build();
     }
     
     /**
      * 创建成功边（前一个节点执行成功时）
      */
     public static FlowEdge onSuccess(String from, String to) {
-        return new FlowEdge(from, to, 
-            ctx -> ctx.getLastResult() != null && ctx.getLastResult().isSuccess(),
-            EdgeType.ON_SUCCESS, "onSuccess");
+        return FlowEdge.builder()
+                .fromNodeId(from)
+                .toNodeId(to)
+                .condition(ctx -> {
+                    FlowNodeExecutionResult lastResult = ctx.getLastResult();
+                    return lastResult != null && lastResult.isSuccess();
+                })
+                .type(EdgeType.ON_SUCCESS)
+                .label("onSuccess")
+                .build();
     }
     
     /**
      * 创建失败边（前一个节点执行失败时）
      */
     public static FlowEdge onFailure(String from, String to) {
-        return new FlowEdge(from, to, 
-            ctx -> ctx.getLastResult() != null && !ctx.getLastResult().isSuccess(),
-            EdgeType.ON_FAILURE, "onFailure");
+        return FlowEdge.builder()
+                .fromNodeId(from)
+                .toNodeId(to)
+                .condition(ctx -> {
+                    FlowNodeExecutionResult lastResult = ctx.getLastResult();
+                    return lastResult != null && !lastResult.isSuccess();
+                })
+                .type(EdgeType.ON_FAILURE)
+                .label("onFailure")
+                .build();
     }
     
     /**

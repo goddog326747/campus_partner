@@ -5,7 +5,7 @@ import com.example.project.dto.UpdateAvatarRequestDTO;
 import com.example.project.dto.UpdatePasswordRequestDTO;
 import com.example.project.entity.User;
 import com.example.project.service.UserService;
-import com.example.project.util.UserContext;
+import com.example.project.shiro.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

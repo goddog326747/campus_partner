@@ -1,17 +1,17 @@
 package com.example.project.service.impl;
 
-import com.example.project.document.PostDocument;
 import com.example.project.dto.PostSearchRequest;
-import com.example.project.repository.PostSearchRepository;
+import com.example.project.elasticsearch.document.PostDocument;
+import com.example.project.elasticsearch.repository.PostSearchRepository;
 import com.example.project.service.PostSearchService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
@@ -34,34 +34,31 @@ import java.util.stream.Collectors;
  * @author system
  * @since 1.0
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class PostSearchServiceImpl implements PostSearchService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PostSearchServiceImpl.class);
-
-    @Autowired
-    private PostSearchRepository postSearchRepository;
-
-    @Autowired
-    private ElasticsearchRestTemplate elasticsearchRestTemplate;
+    private final PostSearchRepository postSearchRepository;
+    private final ElasticsearchRestTemplate elasticsearchRestTemplate;
 
     @Override
     public Page<PostDocument> searchByKeyword(String keyword, int pageNum, int pageSize) {
-        logger.info("Searching posts by keyword: {}, page: {}, size: {}", keyword, pageNum, pageSize);
+        log.info("Searching posts by keyword: {}, page: {}, size: {}", keyword, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.searchByKeyword(keyword, pageable);
-            logger.info("Found {} posts for keyword: {}", result.getTotalElements(), keyword);
+            log.info("Found {} posts for keyword: {}", result.getTotalElements(), keyword);
             return result;
         } catch (Exception e) {
-            logger.error("Error searching posts by keyword: {}", keyword, e);
+            log.error("Error searching posts by keyword: {}", keyword, e);
             throw e;
         }
     }
 
     @Override
     public Page<PostDocument> advancedSearch(PostSearchRequest request) {
-        logger.info("Advanced search with request: {}", request);
+        log.info("Advanced search with request: {}", request);
         try {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
@@ -129,46 +126,46 @@ public class PostSearchServiceImpl implements PostSearchService {
             long totalHits = searchHits.getTotalHits();
             Pageable pageable = PageRequest.of(request.getPageNum() - 1, request.getPageSize());
 
-            logger.info("Advanced search found {} posts", totalHits);
-            return new org.springframework.data.domain.PageImpl<>(documents, pageable, totalHits);
+            log.info("Advanced search found {} posts", totalHits);
+            return new PageImpl<>(documents, pageable, totalHits);
 
         } catch (Exception e) {
-            logger.error("Error in advanced search", e);
+            log.error("Error in advanced search", e);
             throw e;
         }
     }
 
     @Override
     public Page<PostDocument> searchByCategory(String category, int pageNum, int pageSize) {
-        logger.info("Searching posts by category: {}, page: {}, size: {}", category, pageNum, pageSize);
+        log.info("Searching posts by category: {}, page: {}, size: {}", category, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.findByCategory(category, pageable);
-            logger.info("Found {} posts for category: {}", result.getTotalElements(), category);
+            log.info("Found {} posts for category: {}", result.getTotalElements(), category);
             return result;
         } catch (Exception e) {
-            logger.error("Error searching posts by category: {}", category, e);
+            log.error("Error searching posts by category: {}", category, e);
             throw e;
         }
     }
 
     @Override
     public Page<PostDocument> searchByDestination(String destination, int pageNum, int pageSize) {
-        logger.info("Searching posts by destination: {}, page: {}, size: {}", destination, pageNum, pageSize);
+        log.info("Searching posts by destination: {}, page: {}, size: {}", destination, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.findByDestination(destination, pageable);
-            logger.info("Found {} posts for destination: {}", result.getTotalElements(), destination);
+            log.info("Found {} posts for destination: {}", result.getTotalElements(), destination);
             return result;
         } catch (Exception e) {
-            logger.error("Error searching posts by destination: {}", destination, e);
+            log.error("Error searching posts by destination: {}", destination, e);
             throw e;
         }
     }
 
     @Override
     public List<String> getSearchSuggestions(String keyword, int size) {
-        logger.info("Getting search suggestions for keyword: {}, size: {}", keyword, size);
+        log.info("Getting search suggestions for keyword: {}, size: {}", keyword, size);
         try {
             if (!StringUtils.hasText(keyword)) {
                 return new ArrayList<>();
@@ -192,11 +189,11 @@ public class PostSearchServiceImpl implements PostSearchService {
                     .limit(size)
                     .collect(Collectors.toList());
 
-            logger.info("Found {} search suggestions", suggestions.size());
+            log.info("Found {} search suggestions", suggestions.size());
             return suggestions;
 
         } catch (Exception e) {
-            logger.error("Error getting search suggestions", e);
+            log.error("Error getting search suggestions", e);
             return new ArrayList<>();
         }
     }
@@ -205,7 +202,7 @@ public class PostSearchServiceImpl implements PostSearchService {
     public List<String> getHotSearchKeywords(int size) {
         // 这里可以实现从 Redis 或数据库中获取热门搜索词
         // 暂时返回空列表
-        logger.info("Getting hot search keywords, size: {}", size);
+        log.info("Getting hot search keywords, size: {}", size);
         return new ArrayList<>();
     }
 }
