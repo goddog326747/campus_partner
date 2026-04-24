@@ -56,4 +56,19 @@ public interface PostSyncService {
      * @return ES 文档
      */
     PostDocument convertToDocument(Post post);
+
+    /**
+     * 获取 ES 中的帖子数量
+     *
+     * @return 帖子数量
+     */
+    long getEsPostCount();
+
+    /**
+     * 增量同步 - 只同步指定时间之后更新的帖子
+     *
+     * @param lastSyncTime 上次同步时间（格式：yyyy-MM-dd HH:mm:ss）
+     * @return 同步的帖子数量
+     */
+    int syncPostsAfter(String lastSyncTime);
 }

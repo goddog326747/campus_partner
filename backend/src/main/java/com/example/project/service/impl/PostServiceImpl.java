@@ -1,5 +1,6 @@
 package com.example.project.service.impl;
 
+import com.example.project.common.PageResult;
 import com.example.project.entity.Post;
 import com.example.project.entity.User;
 import com.example.project.mapper.PostMapper;
@@ -44,37 +45,49 @@ public class PostServiceImpl implements PostService {
     private PostSyncService postSyncService;
 
     @Override
-    public List<Post> listPosts(String category, String keyword) {
-        logger.info("Listing posts - category: {}, keyword: {}", category, keyword);
+    public PageResult<Post> listPostsWithPage(String category, String keyword, int pageNum, int pageSize) {
+        logger.info("Listing posts with page - category: {}, keyword: {}, pageNum: {}, pageSize: {}",
+                category, keyword, pageNum, pageSize);
         try {
-            List<Post> posts = postMapper.selectByCondition(category, keyword);
-            
-            // Populate user information
-            for (Post post : posts) {
+            // 先查询所有符合条件的帖子（为了获取总数）
+            List<Post> allPosts = postMapper.selectByCondition(category, keyword);
+            long total = allPosts.size();
+
+            // 填充用户信息
+            for (Post post : allPosts) {
                 if (post.getUserId() != null) {
                     User user = userMapper.selectById(post.getUserId());
                     if (user != null) {
                         post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
+                        post.setAvatar(user.getAvatar());
                     }
                 }
             }
-            
-            logger.info("Successfully retrieved {} posts", posts.size());
-            return posts;
+
+            // 手动分页
+            int start = (pageNum - 1) * pageSize;
+            if (start >= allPosts.size()) {
+                return PageResult.of(new ArrayList<>(), total, pageNum, pageSize);
+            }
+            int end = Math.min(start + pageSize, allPosts.size());
+            List<Post> pagePosts = allPosts.subList(start, end);
+
+            logger.info("Successfully retrieved {} posts (total: {})", pagePosts.size(), total);
+            return PageResult.of(pagePosts, total, pageNum, pageSize);
         } catch (Exception e) {
-            logger.error("Error listing posts", e);
+            logger.error("Error listing posts with page", e);
             throw e;
         }
     }
 
     @Override
-    public List<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize) {
-        logger.info("Listing posts with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}", 
-                category, keyword, location, school, verified, gender);
-        
+    public PageResult<Post> listPostsWithFilter(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize) {
+        logger.info("Listing posts with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}, pageNum: {}, pageSize: {}",
+                category, keyword, location, school, verified, gender, pageNum, pageSize);
+
         // For now, use basic condition query. Advanced filtering can be added in XML
         List<Post> posts = postMapper.selectByCondition(category, keyword);
-        
+
         // Populate user information with filters
         List<Post> filteredPosts = new ArrayList<>();
         for (Post post : posts) {
@@ -88,13 +101,19 @@ public class PostServiceImpl implements PostService {
                     if (school != null && !school.isEmpty() && !school.equals(user.getSchool())) {
                         continue;
                     }
-                    if (verified != null && !verified.equals(user.getVerified())) {
-                        continue;
+                    if (verified != null) {
+                        // verified: 0=未认证, 1=认证中, 2=已认证
+                        // 前端传递 verified=true 表示筛选已认证用户
+                        Integer userVerified = user.getVerified();
+                        boolean isUserVerified = userVerified != null && userVerified == 2;
+                        if (verified.booleanValue() != isUserVerified) {
+                            continue;
+                        }
                     }
                     if (gender != null && !gender.equals(user.getGender())) {
                         continue;
                     }
-                    
+
                     post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
                     post.setAvatar(user.getAvatar());
                     post.setUserLocation(user.getLocation());
@@ -105,16 +124,19 @@ public class PostServiceImpl implements PostService {
             }
             filteredPosts.add(post);
         }
-        
+
+        long total = filteredPosts.size();
+
         // Manual pagination
         int start = (pageNum - 1) * pageSize;
-        int end = Math.min(start + pageSize, filteredPosts.size());
-        if (start > filteredPosts.size()) {
-            return new ArrayList<>();
+        if (start >= filteredPosts.size()) {
+            return PageResult.of(new ArrayList<>(), total, pageNum, pageSize);
         }
-        
-        logger.info("Successfully retrieved {} posts (total: {})", end - start, filteredPosts.size());
-        return filteredPosts.subList(start, end);
+        int end = Math.min(start + pageSize, filteredPosts.size());
+        List<Post> pagePosts = filteredPosts.subList(start, end);
+
+        logger.info("Successfully retrieved {} posts (total: {})", pagePosts.size(), total);
+        return PageResult.of(pagePosts, total, pageNum, pageSize);
     }
 
     @Override

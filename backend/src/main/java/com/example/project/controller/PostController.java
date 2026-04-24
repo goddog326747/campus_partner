@@ -2,6 +2,7 @@ package com.example.project.controller;
 
 import java.util.List;
 
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.project.common.CategoryConstants;
+import com.example.project.common.PageResult;
 import com.example.project.common.Result;
 import com.example.project.dto.PostFilterRequestDTO;
 import com.example.project.entity.Post;
@@ -58,20 +60,25 @@ public class PostController {
     }
 
     /**
-     * 获取帖子列表（简单查询）
+     * 获取帖子列表（简单查询，支持分页）
      *
      * @param category 分类筛选条件，可选
      * @param keyword  关键词搜索条件，可选
-     * @return 帖子列表
+     * @param pageNum  页码，默认1
+     * @param pageSize 每页大小，默认10
+     * @return 分页帖子列表
      */
     @GetMapping("/list")
-    public Result<List<Post>> list(@RequestParam(required = false) String category,
-                                   @RequestParam(required = false) String keyword) {
-        logger.info("Fetching post list - category: {}, keyword: {}", category, keyword);
+    public Result<PageResult<Post>> list(@RequestParam(required = false) String category,
+                                         @RequestParam(required = false) String keyword,
+                                         @RequestParam(defaultValue = "1") int pageNum,
+                                         @RequestParam(defaultValue = "10") int pageSize) {
+        logger.info("Fetching post list - category: {}, keyword: {}, pageNum: {}, pageSize: {}",
+                category, keyword, pageNum, pageSize);
         try {
-            List<Post> posts = postService.listPosts(category, keyword);
-            logger.info("Successfully fetched {} posts", posts.size());
-            return Result.success(posts);
+            PageResult<Post> result = postService.listPostsWithPage(category, keyword, pageNum, pageSize);
+            logger.info("Successfully fetched {} posts (total: {})", result.getRecords().size(), result.getTotal());
+            return Result.success(result);
         } catch (Exception e) {
             logger.error("Error fetching post list", e);
             return Result.error(500, "获取帖子列表失败");
@@ -85,11 +92,11 @@ public class PostController {
      * @return 分页帖子列表
      */
     @GetMapping("/list/filter")
-    public Result<List<Post>> listWithFilter(PostFilterRequestDTO request) {
-        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}",
-                request.getCategory(), request.getKeyword(), request.getLocation(), request.getSchool(), request.getVerified(), request.getGender());
+    public Result<PageResult<Post>> listWithFilter(PostFilterRequestDTO request) {
+        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}, pageNum: {}, pageSize: {}",
+                request.getCategory(), request.getKeyword(), request.getLocation(), request.getSchool(), request.getVerified(), request.getGender(), request.getPageNum(), request.getPageSize());
         try {
-            List<Post> posts = postService.listPosts(
+            PageResult<Post> result = postService.listPostsWithFilter(
                     request.getCategory(),
                     request.getKeyword(),
                     request.getLocation(),
@@ -98,7 +105,7 @@ public class PostController {
                     request.getGender(),
                     request.getPageNum(),
                     request.getPageSize());
-            return Result.success(posts);
+            return Result.success(result);
         } catch (Exception e) {
             logger.error("Error fetching post list with filters", e);
             return Result.error(500, "获取帖子列表失败");
@@ -215,12 +222,6 @@ public class PostController {
      * @return JSON数组字符串
      */
     private String toJsonArray(List<String> list) {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < list.size(); i++) {
-            if (i > 0) sb.append(",");
-            sb.append("\"").append(list.get(i)).append("\"");
-        }
-        sb.append("]");
-        return sb.toString();
+        return JSON.toJSONString(list);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.project.service;
 
+import com.example.project.common.PageResult;
 import com.example.project.entity.Post;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,13 +18,15 @@ import java.util.List;
 public interface PostService {
     
     /**
-     * 获取帖子列表（简单查询）
+     * 获取帖子列表（简单查询，分页）
      *
      * @param category 分类筛选条件，可为null
      * @param keyword  关键词搜索条件，可为null
-     * @return 帖子列表
+     * @param pageNum  页码（从1开始）
+     * @param pageSize 每页大小
+     * @return 分页帖子列表
      */
-    List<Post> listPosts(String category, String keyword);
+    PageResult<Post> listPostsWithPage(String category, String keyword, int pageNum, int pageSize);
     
     /**
      * 获取帖子列表（高级筛选，分页）
@@ -38,7 +41,7 @@ public interface PostService {
      * @param pageSize  每页大小
      * @return 分页帖子列表
      */
-    List<Post> listPosts(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize);
+    PageResult<Post> listPostsWithFilter(String category, String keyword, String location, String school, Boolean verified, Integer gender, int pageNum, int pageSize);
     
     /**
      * 创建新帖子

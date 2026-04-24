@@ -7,6 +7,7 @@
           placeholder="搜索感兴趣的活动、关键词..."
           prefix-icon="Search"
           clearable
+          size="large"
           @clear="fetchList"
           @keyup.enter="fetchList"
         >
@@ -53,13 +54,13 @@
         >
           高校认证
         </el-check-tag>
-        <el-check-tag 
-          v-if="currentUser?.gender" 
-          :checked="filters.sameGender" 
+        <el-check-tag
+          v-if="currentUser?.gender"
+          :checked="filters.sameGender"
           @change="toggleFilter('sameGender')"
           class="filter-tag"
         >
-          同校友人
+          同性友人
         </el-check-tag>
       </div>
     </div>
@@ -67,7 +68,7 @@
     <div class="blog-list" v-loading="loading">
       <el-empty v-if="!posts.length && !loading" description="暂无相关帖子" />
       
-      <div class="blog-box" v-for="b in posts" :key="b.id" @click="$router.push('/post/' + b.id)">
+      <div class="blog-box" v-for="(b, index) in posts" :key="b.id" @click="$router.push('/post/' + b.id)" :style="{ animationDelay: `${index * 0.05}s` }">
         <div class="blog-img" v-if="getPostImages(b).length > 0">
           <img :src="getPostImages(b)[0]" alt="">
         </div>
@@ -82,11 +83,11 @@
           </div>
           <div class="blog-desc">{{ b.content }}</div>
           <div class="user-info" v-if="b.username">
-            <el-avatar :size="24" :src="b.avatar" />
+            <el-avatar :size="26" :src="b.avatar" />
             <span class="username">{{ b.username }}</span>
-            <el-tag v-if="b.userVerified" type="success" size="small" effect="plain">已认证</el-tag>
-            <span v-if="b.userLocation" class="user-location">{{ b.userLocation }}</span>
-            <span v-if="b.userSchool" class="user-school">{{ b.userSchool }}</span>
+            <el-tag v-if="b.userVerified" type="success" size="small" effect="plain" class="verified-tag">已认证</el-tag>
+            <span v-if="b.userLocation" class="user-meta">{{ b.userLocation }}</span>
+            <span v-if="b.userSchool" class="user-meta">{{ b.userSchool }}</span>
           </div>
         </div>
       </div>
@@ -185,15 +186,17 @@ const fetchList = async () => {
       loading.value = false
     }
   } else {
-    const params = { 
-        category: activeCategory.value, 
-        keyword: searchQuery.value 
+    const params = {
+        category: activeCategory.value,
+        keyword: searchQuery.value,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
     }
     try {
       const res = await listPosts(params)
       if (res.code === 200) {
-          posts.value = res.data || []
-          total.value = posts.value.length
+          posts.value = res.data?.records || []
+          total.value = res.data?.total || 0
       } else {
           posts.value = []
           total.value = 0
@@ -252,62 +255,69 @@ onMounted(() => {
 <style scoped>
 .partner-list {
   padding-bottom: 20px;
-  background-color: #f5f7fa;
   min-height: 100vh;
 }
 .page-header {
-  margin-bottom: 10px;
-  padding: 15px 15px 0 15px;
-  background-color: #fff;
+  margin-bottom: 16px;
+  padding: 20px 24px 0 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 .search-box {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .filter-tags {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 10px 0 14px 0;
 }
 .filter-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
   flex-shrink: 0;
+  font-weight: 500;
 }
 .filter-tag {
   flex: 1;
   justify-content: center;
-  padding: 6px 0;
+  padding: 7px 0 !important;
   font-size: 12px;
+  border-radius: var(--radius-sm) !important;
 }
 
 .blog-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  padding: 10px;
+  gap: 16px;
+  padding: 4px 0;
 }
 
 .blog-box {
-  background: #fff;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-normal);
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  border: 1px solid var(--border-light);
+  animation: fadeInUp 0.4s ease both;
 }
 .blog-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px 0 rgba(0,0,0,0.1);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(79, 110, 247, 0.15);
 }
 
 .blog-img {
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
+  width: 110px;
+  height: 110px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -315,6 +325,10 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+.blog-box:hover .blog-img img {
+  transform: scale(1.05);
 }
 
 .blog-content {
@@ -324,62 +338,70 @@ onMounted(() => {
 
 .blog-title {
     font-size: 16px;
-    font-weight: bold;
-    color: #333;
+    font-weight: 600;
+    color: var(--text-primary);
     margin-bottom: 8px;
+    line-height: 1.4;
 }
 .blog-info {
     display: flex;
     gap: 10px;
     font-size: 12px;
-    color: #999;
+    color: var(--text-muted);
     margin-bottom: 8px;
     align-items: center;
     flex-wrap: wrap;
 }
 .category-tag {
-    background-color: #ecf5ff;
-    color: #409eff;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: linear-gradient(135deg, rgba(79, 110, 247, 0.1), rgba(118, 75, 162, 0.1));
+    color: var(--primary);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 11px;
 }
 .location-tag {
   display: flex;
   align-items: center;
-  gap: 2px;
-  color: #ff6b6b;
+  gap: 3px;
+  color: var(--accent);
+  font-weight: 500;
 }
 .blog-desc {
     font-size: 14px;
-    color: #666;
+    color: var(--text-secondary);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 .username {
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
-.user-location, .user-school {
-  padding: 1px 4px;
-  background: #f5f5f5;
-  border-radius: 4px;
+.verified-tag {
+  border-radius: 20px !important;
+}
+.user-meta {
+  padding: 2px 8px;
+  background: var(--bg-page);
+  border-radius: 20px;
+  font-size: 11px;
 }
 
 .pagination {
   display: flex;
   justify-content: center;
-  padding: 20px 0;
+  padding: 24px 0;
 }
 </style>

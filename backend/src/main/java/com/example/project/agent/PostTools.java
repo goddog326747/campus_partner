@@ -280,7 +280,7 @@ public class PostTools {
      */
     @Tool("搜索平台上的相关帖子，返回摘要供参考")
     public String searchRelatedPosts(@P("搜索关键词") String keyword) {
-        List<Post> posts = postService.listPosts(null, keyword);
+        List<Post> posts = postService.listPostsWithPage(null, keyword, 1, 10).getRecords();
         
         if (posts == null || posts.isEmpty()) {
             return "未找到相关帖子";

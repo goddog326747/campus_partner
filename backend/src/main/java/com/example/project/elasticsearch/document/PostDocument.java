@@ -30,10 +30,10 @@ public class PostDocument {
     @Field(type = FieldType.Long)
     private Long id;
 
-    @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
+    @Field(type = FieldType.Text)
     private String title;
 
-    @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
+    @Field(type = FieldType.Text)
     private String content;
 
     @Field(type = FieldType.Keyword)
@@ -45,7 +45,7 @@ public class PostDocument {
     @Field(type = FieldType.Keyword)
     private List<String> images;
 
-    @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
+    @Field(type = FieldType.Text)
     private String destination;
 
     @Field(type = FieldType.Date, format = {}, pattern = "yyyy-MM-dd HH:mm:ss")

@@ -1,9 +1,12 @@
 <template>
   <el-container class="layout-container">
-    <el-header>
+    <el-header class="app-header">
       <div class="header-content">
-        <h1>搭伙行</h1>
-        <el-menu mode="horizontal" router :default-active="$route.path" :ellipsis="false">
+        <div class="logo" @click="$router.push('/')">
+          <span class="logo-icon">🧳</span>
+          <h1 class="logo-text">搭伙行</h1>
+        </div>
+        <el-menu mode="horizontal" router :default-active="$route.path" :ellipsis="false" class="nav-menu">
           <el-menu-item index="/">首页</el-menu-item>
           <el-menu-item index="/partners">寻找搭伙</el-menu-item>
           <el-menu-item index="/post/create">发帖</el-menu-item>
@@ -11,7 +14,7 @@
           <el-sub-menu v-else index="user">
             <template #title>
               <span style="display: flex; align-items: center;">
-                <el-avatar :size="24" :src="currentUser?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" style="margin-right: 8px;" />
+                <el-avatar :size="28" :src="currentUser?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" style="margin-right: 8px; border: 2px solid rgba(255,255,255,0.3);" />
                 {{ currentUser?.nickname || '用户' }}
               </span>
             </template>
@@ -24,8 +27,10 @@
     <el-main>
       <router-view />
     </el-main>
-    <el-footer>
-      <p>&copy; 2025 搭伙行 - 寻找你的旅行伙伴</p>
+    <el-footer class="app-footer">
+      <div class="footer-content">
+        <p>&copy; 2025 搭伙行 - 寻找你的旅行伙伴</p>
+      </div>
     </el-footer>
     <AIAssistant />
   </el-container>
@@ -52,6 +57,16 @@ const handleLogout = () => {
 <style>
 .layout-container {
   min-height: 100vh;
+  background-color: var(--bg-page);
+}
+.app-header {
+  background: var(--gradient-header);
+  border-bottom: none;
+  box-shadow: 0 2px 20px rgba(102, 126, 234, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
 }
 .header-content {
   display: flex;
@@ -61,18 +76,69 @@ const handleLogout = () => {
   margin: 0 auto;
   height: 100%;
 }
-.el-header {
-  border-bottom: 1px solid #dcdfe6;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+.logo:hover {
+  transform: scale(1.02);
+}
+.logo-icon {
+  font-size: 28px;
+}
+.logo-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 1px;
+}
+.nav-menu {
+  background: transparent !important;
+}
+.nav-menu .el-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: none !important;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 0 20px;
+  transition: all var(--transition-fast) !important;
+}
+.nav-menu .el-menu-item:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.nav-menu .el-menu-item.is-active {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+.nav-menu .el-sub-menu__title {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: none !important;
+}
+.nav-menu .el-sub-menu__title:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 .el-main {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
-  padding: 20px;
+  padding: 24px 20px;
 }
-.el-footer {
+.app-footer {
   text-align: center;
-  background-color: #f5f7fa;
-  padding: 20px;
+  background: linear-gradient(180deg, var(--bg-page) 0%, #e8eaf0 100%);
+  padding: 24px 20px;
+  border-top: 1px solid var(--border-light);
+}
+.footer-content p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 0.5px;
 }
 </style>

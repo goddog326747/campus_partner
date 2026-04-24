@@ -33,7 +33,7 @@
     </div>
 
     <div class="ai-generate-section">
-      <div class="ai-generate-btn" @click="showAiDialog = true">
+      <div class="ai-generate-btn" @click="goToAiGenerate">
         <el-icon><MagicStick /></el-icon>
         <span>AI 智能生成</span>
       </div>
@@ -43,8 +43,8 @@
 
     <div class="blog-option" @click="showPartitionDialog = true">
       <div class="option-left">选择分区</div>
-      <div v-if="selectedPartition">{{ selectedPartition }}</div>
-      <div v-else>去选择 <el-icon><ArrowRight /></el-icon></div>
+      <div v-if="selectedPartition" class="option-selected">{{ selectedPartition }}</div>
+      <div v-else class="option-placeholder">去选择 <el-icon><ArrowRight /></el-icon></div>
     </div>
 
     <div class="blog-option">
@@ -66,55 +66,6 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showAiDialog" title="AI 智能生成" width="90%" class="ai-dialog">
-      <div class="ai-form">
-        <div class="ai-form-item">
-          <label>主题 <span class="required">*</span></label>
-          <input v-model="aiForm.topic" type="text" placeholder="例如：周末一起去爬山">
-        </div>
-        <div class="ai-form-item">
-          <label>分类</label>
-          <div class="ai-category-list">
-            <div 
-              v-for="c in partitions" 
-              :key="c" 
-              class="ai-category-item"
-              :class="{ active: aiForm.category === c }"
-              @click="aiForm.category = c"
-            >
-              {{ c }}
-            </div>
-          </div>
-        </div>
-        <div class="ai-form-item">
-          <label>目的地</label>
-          <input v-model="aiForm.destination" type="text" placeholder="例如：黄山（选填）">
-        </div>
-        <div class="ai-form-item">
-          <label>风格</label>
-          <div class="ai-style-list">
-            <div 
-              v-for="s in aiStyles" 
-              :key="s" 
-              class="ai-style-item"
-              :class="{ active: aiForm.style === s }"
-              @click="aiForm.style = s"
-            >
-              {{ s }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="ai-dialog-footer">
-          <el-button @click="showAiDialog = false">取消</el-button>
-          <el-button type="primary" @click="generateWithAi" :loading="aiGenerating">
-            {{ aiGenerating ? '生成中...' : '生成内容' }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
   </div>
 </template>
 
@@ -124,7 +75,6 @@ import { useRouter } from 'vue-router'
 import { Camera, Close, ArrowRight, MagicStick } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { createPost, getCategories } from '../api/posts'
-import { aiGeneratePost } from '../api/ai'
 
 const router = useRouter()
 const fileInput = ref(null)
@@ -136,21 +86,37 @@ const submitting = ref(false)
 const form = reactive({
   title: '',
   content: '',
-  destination: ''
+  destination: '',
+  tags: []
 })
+
+// 检查是否有AI生成的内容
+const checkAiGeneratedContent = () => {
+  const aiContent = localStorage.getItem('aiGeneratedPost')
+  if (aiContent) {
+    try {
+      const data = JSON.parse(aiContent)
+      form.title = data.title || ''
+      form.content = data.content || ''
+      if (data.category) {
+        selectedPartition.value = data.category
+      }
+      // 加载标签
+      if (data.tags && Array.isArray(data.tags)) {
+        form.tags = data.tags
+      }
+      // 清除已使用的内容
+      localStorage.removeItem('aiGeneratedPost')
+      ElMessage.success('已加载 AI 生成的内容')
+    } catch (e) {
+      console.error('解析 AI 生成内容失败:', e)
+    }
+  }
+}
 
 const partitions = ref([])
 
-const showAiDialog = ref(false)
-const aiGenerating = ref(false)
-const aiStyles = ['轻松活泼', '热情邀请', '认真严肃', '幽默风趣', '文艺清新']
 
-const aiForm = reactive({
-  topic: '',
-  category: '',
-  destination: '',
-  style: '轻松活泼'
-})
 
 const fetchCategories = async () => {
     try {
@@ -165,6 +131,7 @@ const fetchCategories = async () => {
 
 onMounted(() => {
     fetchCategories()
+    checkAiGeneratedContent()
 })
 
 const openFileDialog = () => {
@@ -199,46 +166,8 @@ const selectPartition = (p) => {
     showPartitionDialog.value = false
 }
 
-const generateWithAi = async () => {
-  if (!aiForm.topic.trim()) {
-    ElMessage.warning('请输入主题')
-    return
-  }
-  
-  aiGenerating.value = true
-  
-  try {
-    // 构建请求参数 - 使用新的 API 格式
-    const requestData = {
-      topic: aiForm.topic,
-      category: aiForm.category || undefined,
-      style: aiForm.style || undefined,
-      requirements: aiForm.destination ? `目的地：${aiForm.destination}` : undefined
-    }
-    
-    const res = await aiGeneratePost(requestData)
-    
-    if (res.code === 200 && res.data) {
-      // 新的 API 返回格式: { title, content, category, executionId, executionTime, nodesExecuted }
-      form.title = res.data.title || ''
-      form.content = res.data.content || ''
-      
-      // 如果返回了分类且当前未选择分类，则自动选择
-      if (res.data.category && !selectedPartition.value) {
-        selectedPartition.value = res.data.category
-      }
-      
-      ElMessage.success('AI 生成成功，可继续编辑')
-      showAiDialog.value = false
-    } else {
-      ElMessage.error(res.msg || 'AI 生成失败')
-    }
-  } catch (e) {
-    console.error('AI 生成失败:', e)
-    ElMessage.error('AI 生成失败，请稍后重试')
-  } finally {
-    aiGenerating.value = false
-  }
+const goToAiGenerate = () => {
+    router.push('/ai/generate')
 }
 
 const submitBlog = async () => {
@@ -281,67 +210,95 @@ const submitBlog = async () => {
 
 <style scoped>
 .blog-edit {
-  padding: 10px;
-  background: #fff;
+  padding: 16px;
+  background: var(--bg-card);
   min-height: 100vh;
+  border-radius: var(--radius-lg);
 }
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 44px;
-  margin-bottom: 10px;
+  height: 48px;
+  margin-bottom: 16px;
 }
 .header-cancel-btn {
-  font-size: 16px;
-  color: #666;
+  font-size: 15px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.header-cancel-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-page);
 }
 .header-title {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 .header-commit-btn {
-  background: #ff2442;
+  background: var(--gradient-primary);
   color: #fff;
-  padding: 6px 16px;
-  border-radius: 20px;
+  padding: 8px 20px;
+  border-radius: 24px;
   font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-normal);
+}
+.header-commit-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.3);
 }
 .header-commit-btn.disabled {
   background: #ccc;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .upload-box {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 .upload-btn {
-  width: 80px;
-  height: 80px;
-  background: #f5f5f5;
+  width: 84px;
+  height: 84px;
+  background: var(--bg-page);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border-radius: 8px;
-  color: #999;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
   cursor: pointer;
+  border: 2px dashed var(--border-light);
+  transition: all var(--transition-fast);
+  font-size: 24px;
+}
+.upload-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(79, 110, 247, 0.04);
 }
 .pic-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 .pic-box {
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .pic-box img {
   width: 100%;
@@ -350,52 +307,60 @@ const submitBlog = async () => {
 }
 .close-icon {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
   background: rgba(0,0,0,0.5);
   color: #fff;
   border-radius: 50%;
-  padding: 2px;
+  padding: 3px;
   cursor: pointer;
+  font-size: 12px;
+  transition: background var(--transition-fast);
+}
+.close-icon:hover {
+  background: rgba(0,0,0,0.7);
 }
 
 .blog-title input {
   width: 100%;
   border: none;
   font-size: 20px;
-  font-weight: bold;
-  padding: 10px 0;
+  font-weight: 700;
+  padding: 12px 0;
   outline: none;
+  color: var(--text-primary);
 }
 .blog-content textarea {
   width: 100%;
   height: 200px;
   border: none;
-  font-size: 16px;
+  font-size: 15px;
   resize: none;
   outline: none;
-  line-height: 1.5;
+  line-height: 1.7;
+  color: var(--text-secondary);
 }
 
 .ai-generate-section {
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 .ai-generate-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 10px 18px;
+  background: var(--gradient-primary);
   color: #fff;
-  border-radius: 20px;
+  border-radius: 24px;
   font-size: 14px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all var(--transition-normal);
+  font-weight: 500;
 }
 .ai-generate-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 .ai-generate-btn .el-icon {
   font-size: 16px;
@@ -403,28 +368,40 @@ const submitBlog = async () => {
 
 .divider {
   height: 1px;
-  background: #eee;
-  margin: 10px 0;
+  background: var(--border-light);
+  margin: 12px 0;
 }
 
 .blog-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  font-size: 16px;
-  color: #333;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 16px 0;
+  font-size: 15px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
 }
 .option-left {
-  color: #333;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.option-selected {
+  color: var(--primary);
+  font-weight: 500;
+}
+.option-placeholder {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .option-input {
   border: none;
   text-align: right;
-  font-size: 16px;
+  font-size: 15px;
   outline: none;
-  color: #666;
+  color: var(--text-secondary);
   width: 200px;
 }
 .partition-list {
@@ -434,70 +411,22 @@ const submitBlog = async () => {
   padding: 20px 0;
 }
 .partition-item {
-  padding: 8px 16px;
-  background: #f5f5f5;
-  border-radius: 20px;
+  padding: 8px 18px;
+  background: var(--bg-page);
+  border-radius: 24px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  font-weight: 500;
+}
+.partition-item:hover {
+  background: rgba(79, 110, 247, 0.08);
+  color: var(--primary);
 }
 .partition-item.active {
-  background: #ff2442;
+  background: var(--gradient-primary);
   color: #fff;
 }
 
-.ai-form {
-  padding: 10px 0;
-}
-.ai-form-item {
-  margin-bottom: 20px;
-}
-.ai-form-item label {
-  display: block;
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-.ai-form-item label .required {
-  color: #ff2442;
-}
-.ai-form-item input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  box-sizing: border-box;
-}
-.ai-form-item input:focus {
-  border-color: #667eea;
-}
-.ai-category-list,
-.ai-style-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.ai-category-item,
-.ai-style-item {
-  padding: 6px 12px;
-  background: #f5f5f5;
-  border-radius: 16px;
-  font-size: 13px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ai-category-item.active,
-.ai-style-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-}
-.ai-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
 </style>

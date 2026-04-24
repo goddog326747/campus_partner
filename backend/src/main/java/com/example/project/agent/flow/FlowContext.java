@@ -49,7 +49,15 @@ public class FlowContext {
     public FlowContext(String flowId, Map<String, Object> initialInput) {
         this.flowId = flowId;
         this.executionId = UUID.randomUUID().toString();
-        this.initialInput = new ConcurrentHashMap<>(initialInput != null ? initialInput : new HashMap<>());
+        // 过滤掉 null 值，因为 ConcurrentHashMap 不允许 null
+        this.initialInput = new ConcurrentHashMap<>();
+        if (initialInput != null) {
+            initialInput.forEach((key, value) -> {
+                if (value != null) {
+                    this.initialInput.put(key, value);
+                }
+            });
+        }
         this.nodeResults = new ConcurrentHashMap<>();
         this.variables = new ConcurrentHashMap<>();
         this.executionHistory = Collections.synchronizedList(new ArrayList<>());

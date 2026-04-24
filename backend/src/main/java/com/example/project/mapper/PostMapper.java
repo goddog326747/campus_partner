@@ -35,4 +35,12 @@ public interface PostMapper extends BaseMapper<Post> {
      * @return 帖子列表
      */
     List<Post> selectByUserId(@Param("userId") Long userId);
+
+    /**
+     * 查询指定时间之后更新的帖子（用于增量同步）
+     *
+     * @param lastSyncTime 上次同步时间
+     * @return 帖子列表
+     */
+    List<Post> selectByUpdateTimeAfter(@Param("lastSyncTime") String lastSyncTime);
 }

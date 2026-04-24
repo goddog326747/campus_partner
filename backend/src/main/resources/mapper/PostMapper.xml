@@ -55,6 +55,14 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 查询指定时间之后更新的帖子（用于增量同步） -->
+    <select id="selectByUpdateTimeAfter" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM post
+        WHERE update_time &gt; #{lastSyncTime}
+        ORDER BY update_time ASC
+    </select>
+
     <!-- 插入帖子 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO post (

@@ -32,7 +32,11 @@ public class UserController {
      */
     @GetMapping("/profile")
     public Result<User> getProfile() {
-        Long userId = UserContext.get().getId();
+        User currentUser = UserContext.get();
+        if (currentUser == null) {
+            return Result.error(401, "用户未登录");
+        }
+        Long userId = currentUser.getId();
         return userService.getUserById(userId);
     }
 

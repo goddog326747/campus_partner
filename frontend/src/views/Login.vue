@@ -1,16 +1,21 @@
 <template>
   <div class="login-container">
+    <div class="login-bg"></div>
     <div class="login-box">
-      <h2>欢迎来到搭伙行</h2>
+      <div class="login-header">
+        <span class="login-logo">🧳</span>
+        <h2>欢迎来到搭伙行</h2>
+        <p class="login-subtitle">开启你的旅行社交之旅</p>
+      </div>
       <el-form :model="form" :rules="rules" ref="loginForm" label-width="0">
         <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名/学号" prefix-icon="User" />
+          <el-input v-model="form.username" placeholder="请输入用户名/学号" prefix-icon="User" size="large" />
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="Lock" show-password />
+          <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="Lock" show-password size="large" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">登录</el-button>
+          <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin" size="large">登录</el-button>
         </el-form-item>
         <div class="login-links">
           <span>还没有账号？<router-link to="/register">立即注册</router-link></span>
@@ -47,7 +52,6 @@ const handleLogin = () => {
     if (valid) {
       loading.value = true
       try {
-        // 调用 Vuex action
         const success = await store.dispatch('login', form)
         if (success) {
           ElMessage.success('登录成功')
@@ -56,7 +60,6 @@ const handleLogin = () => {
           ElMessage.error('登录失败')
         }
       } catch (error) {
-        // 开发阶段模拟登录 (如果后端未启动)
         if (import.meta.env.DEV) {
           console.warn('后端未连接，使用模拟登录')
           store.commit('SET_TOKEN', 'mock-token-123')
@@ -79,40 +82,76 @@ const handleLogin = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f5f7fa;
-  background-image: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+  min-height: calc(100vh - 140px);
+  position: relative;
+  overflow: hidden;
 }
-
+.login-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  z-index: 0;
+}
+.login-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(255,255,255,0.08) 0%, transparent 40%);
+}
 .login-box {
-  width: 350px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 1;
+  width: 400px;
+  padding: 48px 40px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  animation: fadeInUp 0.6s ease;
+}
+.login-header {
   text-align: center;
+  margin-bottom: 32px;
 }
-
-h2 {
-  margin-bottom: 30px;
-  color: #333;
-  font-weight: 600;
+.login-logo {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
 }
-
+.login-header h2 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+}
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
 .login-btn {
   width: 100%;
-  padding: 12px 0;
-  font-size: 16px;
+  padding: 14px 0 !important;
+  font-size: 16px !important;
+  border-radius: var(--radius-sm) !important;
+  letter-spacing: 2px;
 }
-
 .login-links {
-  margin-top: 15px;
+  margin-top: 16px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
+  text-align: center;
 }
-
 .login-links a {
-  color: #409eff;
+  color: var(--primary);
   text-decoration: none;
+  font-weight: 500;
+}
+.login-links a:hover {
+  color: var(--primary-dark);
 }
 </style>

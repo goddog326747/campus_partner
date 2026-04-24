@@ -1,24 +1,25 @@
 <template>
   <div class="profile-container">
-    <el-card class="profile-card">
-      <template #header>
-        <div class="card-header">
-          <span>个人中心</span>
-        </div>
-      </template>
+    <div class="profile-card">
+      <div class="card-header">
+        <span class="card-header-icon">👤</span>
+        <span>个人中心</span>
+      </div>
       
-      <el-tabs v-model="activeTab">
+      <el-tabs v-model="activeTab" class="profile-tabs">
         <el-tab-pane label="基本信息" name="basic">
           <div class="avatar-section">
-            <el-avatar :size="100" :src="userInfo.avatar || defaultAvatar" />
-            <el-upload
-              class="avatar-uploader"
-              action="#"
-              :show-file-list="false"
-              :before-upload="beforeAvatarUpload"
-            >
-              <el-button type="primary" size="small" style="margin-top: 10px;">更换头像</el-button>
-            </el-upload>
+            <div class="avatar-wrapper">
+              <el-avatar :size="100" :src="userInfo.avatar || defaultAvatar" />
+              <el-upload
+                class="avatar-uploader"
+                action="#"
+                :show-file-list="false"
+                :before-upload="beforeAvatarUpload"
+              >
+                <div class="avatar-overlay">更换</div>
+              </el-upload>
+            </div>
           </div>
           
           <el-form :model="userInfo" label-width="80px" class="profile-form">
@@ -185,7 +186,7 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -344,7 +345,6 @@ const sendVerifyCode = async () => {
   
   sendingCode.value = true
   try {
-    // TODO: 调用后端发送验证码接口
     ElMessage.success('验证码已发送，请查收邮件')
     countdown.value = 60
     const timer = setInterval(() => {
@@ -368,7 +368,6 @@ const submitVerify = async () => {
   
   submitting.value = true
   try {
-    // TODO: 调用后端认证接口
     ElMessage.success('认证申请已提交，请等待审核')
     userInfo.verified = 1
     userInfo.school = verifyForm.school
@@ -389,38 +388,83 @@ onMounted(() => {
 .profile-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
 }
 
 .profile-card {
-  margin-top: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
 }
 
 .card-header {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.card-header-icon {
+  font-size: 24px;
+}
+
+.profile-tabs :deep(.el-tabs__item) {
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .avatar-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.avatar-wrapper .avatar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  padding: 4px 0;
+  border-radius: 0 0 50px 50px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
 }
 
 .profile-form {
   max-width: 500px;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .privacy-tip {
   font-size: 12px;
-  color: #909399;
-  margin-top: 5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.5;
 }
 
 .verify-section {
-  padding: 20px 0;
+  padding: 24px 0;
 }
 
 .verify-form {

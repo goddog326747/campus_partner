@@ -49,4 +49,9 @@ public class PostGenerateResponse {
      * 发布的帖子 ID（如果已发布）
      */
     private Long postId;
+    
+    /**
+     * 生成的标签
+     */
+    private String tags;
 }

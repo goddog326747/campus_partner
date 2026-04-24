@@ -14,7 +14,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * @since 1.0
  */
 @Configuration
-@EnableElasticsearchRepositories(basePackages = "com.example.project.repository")
+@EnableElasticsearchRepositories(basePackages = "com.example.project.elasticsearch.repository")
 @EnableAsync
 public class ElasticsearchConfig {
 }

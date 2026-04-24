@@ -43,6 +43,12 @@ const routes = [
     path: '/post/:id',
     name: 'PostDetail',
     component: () => import('../views/PostDetail.vue')
+  },
+  {
+    path: '/ai/generate',
+    name: 'AiGenerate',
+    component: () => import('../views/AiGenerate.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

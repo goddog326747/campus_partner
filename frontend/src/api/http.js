@@ -4,7 +4,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 const http = axios.create({
   baseURL,
-  timeout: 60000 // 增加到60秒，适应AI API的响应时间
+  timeout: 120000 // 增加到120秒，适应AI API的响应时间
 })
 
 // 请求拦截器

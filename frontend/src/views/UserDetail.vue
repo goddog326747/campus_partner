@@ -1,8 +1,10 @@
 <template>
   <div class="user-detail-container">
-    <el-card class="user-card" v-loading="loading">
+    <div class="user-card" v-loading="loading">
       <div class="user-header">
-        <el-avatar :size="100" :src="userInfo.avatar || defaultAvatar" />
+        <div class="avatar-wrapper">
+          <el-avatar :size="100" :src="userInfo.avatar || defaultAvatar" />
+        </div>
         <div class="user-info">
           <h2>
             {{ userInfo.nickname || '用户' }}
@@ -72,12 +74,12 @@
           用户未公开联系方式
         </p>
       </div>
-    </el-card>
+    </div>
     
-    <el-card class="posts-card" style="margin-top: 20px;">
-      <template #header>
+    <div class="posts-card">
+      <div class="posts-card-header">
         <span>TA发布的帖子</span>
-      </template>
+      </div>
       <div v-if="posts.length === 0" class="empty-posts">
         暂无发布的帖子
       </div>
@@ -88,7 +90,7 @@
           <span class="post-time">{{ formatDate(post.createTime) }}</span>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -163,20 +165,34 @@ onMounted(() => {
 .user-detail-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
+}
+
+.user-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
 }
 
 .user-header {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 24px;
+}
+
+.avatar-wrapper {
+  position: relative;
 }
 
 .user-info h2 {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .verified-icon {
@@ -200,14 +216,16 @@ onMounted(() => {
 }
 
 .user-info .bio {
-  color: #666;
-  margin: 0 0 10px 0;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .meta-info {
   display: flex;
-  gap: 15px;
-  color: #909399;
+  gap: 18px;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -218,52 +236,77 @@ onMounted(() => {
 }
 
 .detail-section {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .detail-section h3 {
-  margin-bottom: 15px;
-  color: #303133;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .privacy-tip {
-  color: #909399;
+  color: var(--text-muted);
   font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  padding: 16px 0;
+}
+
+.posts-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px 32px;
+  margin-top: 20px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+}
+
+.posts-card-header {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .post-item {
-  padding: 15px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .post-item:hover {
-  background-color: #f5f7fa;
+  background: var(--bg-page);
 }
 
 .post-item h4 {
   margin: 0 0 8px 0;
-  color: #303133;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .post-item p {
   margin: 0 0 8px 0;
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .post-time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .empty-posts {
   text-align: center;
-  color: #909399;
-  padding: 40px 0;
+  color: var(--text-muted);
+  padding: 48px 0;
+  font-size: 14px;
 }
 </style>

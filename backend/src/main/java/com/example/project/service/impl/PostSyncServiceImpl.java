@@ -163,4 +163,39 @@ public class PostSyncServiceImpl implements PostSyncService {
 
         return document;
     }
+
+    @Override
+    public long getEsPostCount() {
+        try {
+            return postSearchRepository.count();
+        } catch (Exception e) {
+            log.warn("Failed to get ES post count", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public int syncPostsAfter(String lastSyncTime) {
+        log.info("Starting incremental sync - posts updated after: {}", lastSyncTime);
+        try {
+            List<Post> posts = postMapper.selectByUpdateTimeAfter(lastSyncTime);
+            if (posts.isEmpty()) {
+                log.info("No posts to sync");
+                return 0;
+            }
+            
+            log.info("Found {} posts to sync", posts.size());
+            int batchSize = 100;
+            for (int i = 0; i < posts.size(); i += batchSize) {
+                List<Post> batch = posts.subList(i, Math.min(i + batchSize, posts.size()));
+                syncPosts(batch);
+            }
+            
+            log.info("Incremental sync completed - total synced: {}", posts.size());
+            return posts.size();
+        } catch (Exception e) {
+            log.error("Error during incremental sync", e);
+            return 0;
+        }
+    }
 }
