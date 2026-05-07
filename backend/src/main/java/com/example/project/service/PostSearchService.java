@@ -1,15 +1,15 @@
 package com.example.project.service;
 
-import com.example.project.elasticsearch.document.PostDocument;
+import com.example.project.common.PageResult;
 import com.example.project.dto.PostSearchRequest;
-import org.springframework.data.domain.Page;
+import com.example.project.entity.Post;
 
 import java.util.List;
 
 /**
  * 帖子搜索服务接口
  * <p>
- * 提供基于 Elasticsearch 的帖子搜索功能
+ * 提供基于 MySQL 的帖子搜索功能，用于与 Elasticsearch 方案做性能对比测试
  * </p>
  *
  * @author system
@@ -23,17 +23,17 @@ public interface PostSearchService {
      * @param keyword  关键词
      * @param pageNum  页码
      * @param pageSize 每页大小
-     * @return 分页帖子文档
+     * @return 分页帖子列表
      */
-    Page<PostDocument> searchByKeyword(String keyword, int pageNum, int pageSize);
+    PageResult<Post> searchByKeyword(String keyword, int pageNum, int pageSize);
 
     /**
      * 高级搜索帖子
      *
      * @param request 搜索请求
-     * @return 分页帖子文档
+     * @return 分页帖子列表
      */
-    Page<PostDocument> advancedSearch(PostSearchRequest request);
+    PageResult<Post> advancedSearch(PostSearchRequest request);
 
     /**
      * 根据分类搜索帖子
@@ -41,9 +41,9 @@ public interface PostSearchService {
      * @param category 分类
      * @param pageNum  页码
      * @param pageSize 每页大小
-     * @return 分页帖子文档
+     * @return 分页帖子列表
      */
-    Page<PostDocument> searchByCategory(String category, int pageNum, int pageSize);
+    PageResult<Post> searchByCategory(String category, int pageNum, int pageSize);
 
     /**
      * 根据目的地搜索帖子
@@ -51,9 +51,9 @@ public interface PostSearchService {
      * @param destination 目的地
      * @param pageNum     页码
      * @param pageSize    每页大小
-     * @return 分页帖子文档
+     * @return 分页帖子列表
      */
-    Page<PostDocument> searchByDestination(String destination, int pageNum, int pageSize);
+    PageResult<Post> searchByDestination(String destination, int pageNum, int pageSize);
 
     /**
      * 获取搜索建议

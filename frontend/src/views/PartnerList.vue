@@ -109,7 +109,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { Search, Location } from '@element-plus/icons-vue'
-import { listPosts, listPostsWithFilter, getCategories } from '../api/posts'
+import { listPosts, listPostsWithFilter, getCategories, searchPostsByKeyword, searchPostsAdvanced } from '../api/posts'
 
 const store = useStore()
 
@@ -145,38 +145,66 @@ const fetchCategories = async () => {
 
 const fetchList = async () => {
   loading.value = true
-  
+
   const hasFilters = filters.value.location || filters.value.school || filters.value.verified || filters.value.sameGender
-  
-  if (hasFilters && isLoggedIn.value) {
-    const params = { 
-        category: activeCategory.value, 
-        keyword: searchQuery.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+  const hasSearch = searchQuery.value && searchQuery.value.trim().length > 0
+
+  // 有搜索关键词时，走 Elasticsearch 搜索接口
+  if (hasSearch) {
+    const params = {
+      keyword: searchQuery.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
     }
-    
+    try {
+      const res = await searchPostsByKeyword(params)
+      if (res.code === 200) {
+        posts.value = res.data?.records || []
+        total.value = res.data?.total || 0
+      } else {
+        posts.value = []
+        total.value = 0
+      }
+    } catch (e) {
+      posts.value = []
+      total.value = 0
+      console.error(e)
+    } finally {
+      loading.value = false
+    }
+    return
+  }
+
+  // 有高级筛选且已登录时，走 ES 高级搜索
+  if (hasFilters && isLoggedIn.value) {
+    const data = {
+      category: activeCategory.value,
+      keyword: searchQuery.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+
     if (filters.value.location && currentUser.value?.location) {
-      params.location = currentUser.value.location
+      data.location = currentUser.value.location
     }
     if (filters.value.school && currentUser.value?.school) {
-      params.school = currentUser.value.school
+      data.school = currentUser.value.school
     }
     if (filters.value.verified) {
-      params.verified = true
+      data.verified = true
     }
     if (filters.value.sameGender && currentUser.value?.gender) {
-      params.gender = currentUser.value.gender
+      data.gender = currentUser.value.gender
     }
-    
+
     try {
-      const res = await listPostsWithFilter(params)
+      const res = await searchPostsAdvanced(data)
       if (res.code === 200) {
-          posts.value = res.data?.records || []
-          total.value = res.data?.total || 0
+        posts.value = res.data?.records || []
+        total.value = res.data?.total || 0
       } else {
-          posts.value = []
-          total.value = 0
+        posts.value = []
+        total.value = 0
       }
     } catch (e) {
       posts.value = []
@@ -186,20 +214,21 @@ const fetchList = async () => {
       loading.value = false
     }
   } else {
+    // 无搜索条件时，走 MySQL 基础查询
     const params = {
-        category: activeCategory.value,
-        keyword: searchQuery.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
+      category: activeCategory.value,
+      keyword: searchQuery.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
     }
     try {
       const res = await listPosts(params)
       if (res.code === 200) {
-          posts.value = res.data?.records || []
-          total.value = res.data?.total || 0
+        posts.value = res.data?.records || []
+        total.value = res.data?.total || 0
       } else {
-          posts.value = []
-          total.value = 0
+        posts.value = []
+        total.value = 0
       }
     } catch (e) {
       posts.value = []

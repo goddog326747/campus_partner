@@ -45,18 +45,13 @@ public class AuthController {
 
         logger.info("User login attempt - username: {}", username);
 
-        try {
-            Result<LoginResponseVO> result = authService.login(username, password);
-            if (result.getCode() == 200) {
-                logger.info("User login successful - username: {}", username);
-            } else {
-                logger.warn("User login failed - username: {}, reason: {}", username, result.getMsg());
-            }
-            return result;
-        } catch (Exception e) {
-            logger.error("Error occurred during login process - username: {}", username, e);
-            return Result.error(500, "登录过程发生错误");
+        Result<LoginResponseVO> result = authService.login(username, password);
+        if (result.getCode() == 200) {
+            logger.info("User login successful - username: {}", username);
+        } else {
+            logger.warn("User login failed - username: {}, reason: {}", username, result.getMsg());
         }
+        return result;
     }
 
     /**
@@ -68,18 +63,13 @@ public class AuthController {
     @PostMapping("/register")
     public Result<User> register(@RequestBody User user) {
         logger.info("User register attempt - username: {}", user.getUsername());
-        try {
-            Result<User> result = userService.register(user);
-            if (result.getCode() == 200) {
-                logger.info("User register successful - username: {}", user.getUsername());
-            } else {
-                logger.warn("User register failed - username: {}, reason: {}", user.getUsername(), result.getMsg());
-            }
-            return result;
-        } catch (Exception e) {
-            logger.error("Error occurred during register process - username: {}", user.getUsername(), e);
-            return Result.error(500, "注册过程发生错误");
+        Result<User> result = userService.register(user);
+        if (result.getCode() == 200) {
+            logger.info("User register successful - username: {}", user.getUsername());
+        } else {
+            logger.warn("User register failed - username: {}, reason: {}", user.getUsername(), result.getMsg());
         }
+        return result;
     }
 
     /**

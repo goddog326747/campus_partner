@@ -1,8 +1,10 @@
 package com.example.project.service.impl;
 
+import com.example.project.common.PageResult;
 import com.example.project.dto.PostSearchRequest;
 import com.example.project.elasticsearch.document.PostDocument;
 import com.example.project.elasticsearch.repository.PostSearchRepository;
+import com.example.project.entity.Post;
 import com.example.project.service.PostSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +28,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 帖子搜索服务实现类
+ * 帖子搜索服务实现类（Elasticsearch 版本）
  * <p>
- * 实现基于 Elasticsearch 的帖子搜索功能
+ * 实现基于 Elasticsearch 的帖子搜索功能，前端采用此实现
  * </p>
  *
  * @author system
@@ -43,13 +45,13 @@ public class PostSearchServiceImpl implements PostSearchService {
     private final ElasticsearchRestTemplate elasticsearchRestTemplate;
 
     @Override
-    public Page<PostDocument> searchByKeyword(String keyword, int pageNum, int pageSize) {
+    public PageResult<Post> searchByKeyword(String keyword, int pageNum, int pageSize) {
         log.info("Searching posts by keyword: {}, page: {}, size: {}", keyword, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.searchByKeyword(keyword, pageable);
             log.info("Found {} posts for keyword: {}", result.getTotalElements(), keyword);
-            return result;
+            return convertToPageResult(result, pageNum, pageSize);
         } catch (Exception e) {
             log.error("Error searching posts by keyword: {}", keyword, e);
             throw e;
@@ -57,12 +59,11 @@ public class PostSearchServiceImpl implements PostSearchService {
     }
 
     @Override
-    public Page<PostDocument> advancedSearch(PostSearchRequest request) {
+    public PageResult<Post> advancedSearch(PostSearchRequest request) {
         log.info("Advanced search with request: {}", request);
         try {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
-            // 关键词搜索
             if (StringUtils.hasText(request.getKeyword())) {
                 boolQuery.must(QueryBuilders.multiMatchQuery(request.getKeyword())
                         .field("title", 3.0f)
@@ -72,44 +73,36 @@ public class PostSearchServiceImpl implements PostSearchService {
                         .fuzziness("AUTO"));
             }
 
-            // 分类筛选
             if (StringUtils.hasText(request.getCategory())) {
                 boolQuery.filter(QueryBuilders.termQuery("category", request.getCategory()));
             }
 
-            // 地点筛选
             if (StringUtils.hasText(request.getLocation())) {
                 boolQuery.filter(QueryBuilders.termQuery("userLocation", request.getLocation()));
             }
 
-            // 学校筛选
             if (StringUtils.hasText(request.getSchool())) {
                 boolQuery.filter(QueryBuilders.termQuery("userSchool", request.getSchool()));
             }
 
-            // 认证状态筛选
             if (request.getVerified() != null) {
                 boolQuery.filter(QueryBuilders.termQuery("userVerified", request.getVerified() ? 1 : 0));
             }
 
-            // 性别筛选
             if (request.getGender() != null) {
                 boolQuery.filter(QueryBuilders.termQuery("userGender", request.getGender()));
             }
 
-            // 目的地筛选
             if (StringUtils.hasText(request.getDestination())) {
                 boolQuery.filter(QueryBuilders.matchQuery("destination", request.getDestination()));
             }
 
-            // 构建排序
             SortOrder sortOrder = "asc".equalsIgnoreCase(request.getSortOrder()) ? SortOrder.ASC : SortOrder.DESC;
             String sortField = request.getSortField();
             if (!StringUtils.hasText(sortField)) {
                 sortField = "createTime";
             }
 
-            // 构建查询
             NativeSearchQueryBuilder queryBuilder = new NativeSearchQueryBuilder()
                     .withQuery(boolQuery)
                     .withPageable(PageRequest.of(request.getPageNum() - 1, request.getPageSize()))
@@ -118,7 +111,6 @@ public class PostSearchServiceImpl implements PostSearchService {
             NativeSearchQuery searchQuery = queryBuilder.build();
             SearchHits<PostDocument> searchHits = elasticsearchRestTemplate.search(searchQuery, PostDocument.class);
 
-            // 转换为 Page 对象
             List<PostDocument> documents = searchHits.getSearchHits().stream()
                     .map(hit -> hit.getContent())
                     .collect(Collectors.toList());
@@ -127,7 +119,7 @@ public class PostSearchServiceImpl implements PostSearchService {
             Pageable pageable = PageRequest.of(request.getPageNum() - 1, request.getPageSize());
 
             log.info("Advanced search found {} posts", totalHits);
-            return new PageImpl<>(documents, pageable, totalHits);
+            return convertDocumentsToPageResult(documents, pageable, totalHits, request.getPageNum(), request.getPageSize());
 
         } catch (Exception e) {
             log.error("Error in advanced search", e);
@@ -136,13 +128,13 @@ public class PostSearchServiceImpl implements PostSearchService {
     }
 
     @Override
-    public Page<PostDocument> searchByCategory(String category, int pageNum, int pageSize) {
+    public PageResult<Post> searchByCategory(String category, int pageNum, int pageSize) {
         log.info("Searching posts by category: {}, page: {}, size: {}", category, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.findByCategory(category, pageable);
             log.info("Found {} posts for category: {}", result.getTotalElements(), category);
-            return result;
+            return convertToPageResult(result, pageNum, pageSize);
         } catch (Exception e) {
             log.error("Error searching posts by category: {}", category, e);
             throw e;
@@ -150,13 +142,13 @@ public class PostSearchServiceImpl implements PostSearchService {
     }
 
     @Override
-    public Page<PostDocument> searchByDestination(String destination, int pageNum, int pageSize) {
+    public PageResult<Post> searchByDestination(String destination, int pageNum, int pageSize) {
         log.info("Searching posts by destination: {}, page: {}, size: {}", destination, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             Page<PostDocument> result = postSearchRepository.findByDestination(destination, pageable);
             log.info("Found {} posts for destination: {}", result.getTotalElements(), destination);
-            return result;
+            return convertToPageResult(result, pageNum, pageSize);
         } catch (Exception e) {
             log.error("Error searching posts by destination: {}", destination, e);
             throw e;
@@ -171,7 +163,6 @@ public class PostSearchServiceImpl implements PostSearchService {
                 return new ArrayList<>();
             }
 
-            // 使用前缀匹配获取建议
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                     .should(QueryBuilders.prefixQuery("title", keyword))
                     .should(QueryBuilders.prefixQuery("destination", keyword));
@@ -200,9 +191,50 @@ public class PostSearchServiceImpl implements PostSearchService {
 
     @Override
     public List<String> getHotSearchKeywords(int size) {
-        // 这里可以实现从 Redis 或数据库中获取热门搜索词
-        // 暂时返回空列表
         log.info("Getting hot search keywords, size: {}", size);
         return new ArrayList<>();
+    }
+
+    /**
+     * 将 ES 分页结果转换为业务分页结果
+     */
+    private PageResult<Post> convertToPageResult(Page<PostDocument> page, int pageNum, int pageSize) {
+        List<Post> posts = page.getContent().stream()
+                .map(this::convertToPost)
+                .collect(Collectors.toList());
+        return PageResult.of(posts, page.getTotalElements(), pageNum, pageSize);
+    }
+
+    /**
+     * 将 ES 文档列表转换为业务分页结果
+     */
+    private PageResult<Post> convertDocumentsToPageResult(List<PostDocument> documents, Pageable pageable, long total, int pageNum, int pageSize) {
+        List<Post> posts = documents.stream()
+                .map(this::convertToPost)
+                .collect(Collectors.toList());
+        return PageResult.of(posts, total, pageNum, pageSize);
+    }
+
+    /**
+     * 将 PostDocument 转换为 Post 实体
+     */
+    private Post convertToPost(PostDocument document) {
+        Post post = new Post();
+        post.setId(document.getId());
+        post.setTitle(document.getTitle());
+        post.setContent(document.getContent());
+        post.setCategory(document.getCategory());
+        post.setUserId(document.getUserId());
+        post.setDestination(document.getDestination());
+        post.setCreateTime(document.getCreateTime());
+        post.setUpdateTime(document.getUpdateTime());
+        post.setImages(document.getImages() != null ? String.join(",", document.getImages()) : null);
+        post.setUsername(document.getUsername());
+        post.setAvatar(document.getAvatar());
+        post.setUserLocation(document.getUserLocation());
+        post.setUserSchool(document.getUserSchool());
+        post.setUserVerified(document.getUserVerified());
+        post.setUserGender(document.getUserGender());
+        return post;
     }
 }

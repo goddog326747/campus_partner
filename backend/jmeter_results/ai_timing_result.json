@@ -1,0 +1,51 @@
+{
+  "test_time": "2026-05-02 23:46:59",
+  "api_url": "http://localhost:8080/api/ai/post/generate",
+  "test_count": 5,
+  "success_count": 2,
+  "avg_time_ms": 98220.20781040192,
+  "min_time_ms": 96522.0274925232,
+  "max_time_ms": 99918.38812828064,
+  "results": [
+    {
+      "test_no": 1,
+      "topic": "周末打篮球",
+      "elapsed_ms": 0,
+      "elapsed_sec": 0,
+      "status": "error",
+      "http_code": 0
+    },
+    {
+      "test_no": 2,
+      "topic": "图书馆自习",
+      "elapsed_ms": 99918.38812828064,
+      "elapsed_sec": 99.91838812828064,
+      "status": "success",
+      "http_code": 200
+    },
+    {
+      "test_no": 3,
+      "topic": "一起去爬山",
+      "elapsed_ms": 96522.0274925232,
+      "elapsed_sec": 96.5220274925232,
+      "status": "success",
+      "http_code": 200
+    },
+    {
+      "test_no": 4,
+      "topic": "约饭火锅",
+      "elapsed_ms": 0,
+      "elapsed_sec": 0,
+      "status": "error",
+      "http_code": 0
+    },
+    {
+      "test_no": 5,
+      "topic": "看电影",
+      "elapsed_ms": 0,
+      "elapsed_sec": 0,
+      "status": "error",
+      "http_code": 0
+    }
+  ]
+}

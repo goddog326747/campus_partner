@@ -1,13 +1,12 @@
 package com.example.project.controller;
 
+import com.example.project.common.PageResult;
 import com.example.project.common.Result;
 import com.example.project.dto.PostSearchRequest;
-import com.example.project.elasticsearch.document.PostDocument;
+import com.example.project.entity.Post;
 import com.example.project.service.PostSearchService;
-import com.example.project.service.PostSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,12 +22,11 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/search")
+@RequestMapping("/api/posts/search")
 @RequiredArgsConstructor
 public class PostSearchController {
 
     private final PostSearchService postSearchService;
-    private final PostSyncService postSyncService;
 
     /**
      * 关键词搜索帖子
@@ -39,18 +37,13 @@ public class PostSearchController {
      * @return 分页帖子列表
      */
     @GetMapping("/keyword")
-    public Result<Page<PostDocument>> searchByKeyword(
+    public Result<PageResult<Post>> searchByKeyword(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
         log.info("Search by keyword: {}, page: {}, size: {}", keyword, pageNum, pageSize);
-        try {
-            Page<PostDocument> result = postSearchService.searchByKeyword(keyword, pageNum, pageSize);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("Error searching by keyword: {}", keyword, e);
-            return Result.error(500, "搜索失败: " + e.getMessage());
-        }
+        PageResult<Post> result = postSearchService.searchByKeyword(keyword, pageNum, pageSize);
+        return Result.success(result);
     }
 
     /**
@@ -60,15 +53,10 @@ public class PostSearchController {
      * @return 分页帖子列表
      */
     @PostMapping("/advanced")
-    public Result<Page<PostDocument>> advancedSearch(@RequestBody PostSearchRequest request) {
+    public Result<PageResult<Post>> advancedSearch(@RequestBody PostSearchRequest request) {
         log.info("Advanced search with request: {}", request);
-        try {
-            Page<PostDocument> result = postSearchService.advancedSearch(request);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("Error in advanced search", e);
-            return Result.error(500, "搜索失败: " + e.getMessage());
-        }
+        PageResult<Post> result = postSearchService.advancedSearch(request);
+        return Result.success(result);
     }
 
     /**
@@ -80,18 +68,13 @@ public class PostSearchController {
      * @return 分页帖子列表
      */
     @GetMapping("/category/{category}")
-    public Result<Page<PostDocument>> searchByCategory(
+    public Result<PageResult<Post>> searchByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
         log.info("Search by category: {}, page: {}, size: {}", category, pageNum, pageSize);
-        try {
-            Page<PostDocument> result = postSearchService.searchByCategory(category, pageNum, pageSize);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("Error searching by category: {}", category, e);
-            return Result.error(500, "搜索失败: " + e.getMessage());
-        }
+        PageResult<Post> result = postSearchService.searchByCategory(category, pageNum, pageSize);
+        return Result.success(result);
     }
 
     /**
@@ -103,18 +86,13 @@ public class PostSearchController {
      * @return 分页帖子列表
      */
     @GetMapping("/destination")
-    public Result<Page<PostDocument>> searchByDestination(
+    public Result<PageResult<Post>> searchByDestination(
             @RequestParam String destination,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
         log.info("Search by destination: {}, page: {}, size: {}", destination, pageNum, pageSize);
-        try {
-            Page<PostDocument> result = postSearchService.searchByDestination(destination, pageNum, pageSize);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("Error searching by destination: {}", destination, e);
-            return Result.error(500, "搜索失败: " + e.getMessage());
-        }
+        PageResult<Post> result = postSearchService.searchByDestination(destination, pageNum, pageSize);
+        return Result.success(result);
     }
 
     /**
@@ -129,13 +107,8 @@ public class PostSearchController {
             @RequestParam String keyword,
             @RequestParam(defaultValue = "10") int size) {
         log.info("Get search suggestions for keyword: {}, size: {}", keyword, size);
-        try {
-            List<String> suggestions = postSearchService.getSearchSuggestions(keyword, size);
-            return Result.success(suggestions);
-        } catch (Exception e) {
-            log.error("Error getting search suggestions", e);
-            return Result.error(500, "获取搜索建议失败: " + e.getMessage());
-        }
+        List<String> suggestions = postSearchService.getSearchSuggestions(keyword, size);
+        return Result.success(suggestions);
     }
 
     /**
@@ -148,47 +121,7 @@ public class PostSearchController {
     public Result<List<String>> getHotSearchKeywords(
             @RequestParam(defaultValue = "10") int size) {
         log.info("Get hot search keywords, size: {}", size);
-        try {
-            List<String> keywords = postSearchService.getHotSearchKeywords(size);
-            return Result.success(keywords);
-        } catch (Exception e) {
-            log.error("Error getting hot search keywords", e);
-            return Result.error(500, "获取热门搜索词失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 全量同步帖子到 ES
-     *
-     * @return 操作结果
-     */
-    @PostMapping("/sync/all")
-    public Result<String> syncAllPosts() {
-        log.info("Sync all posts to ES");
-        try {
-            postSyncService.syncAllPosts();
-            return Result.success("同步任务已启动");
-        } catch (Exception e) {
-            log.error("Error syncing all posts", e);
-            return Result.error(500, "同步失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 同步单个帖子到 ES
-     *
-     * @param postId 帖子ID
-     * @return 操作结果
-     */
-    @PostMapping("/sync/{postId}")
-    public Result<String> syncPost(@PathVariable Long postId) {
-        log.info("Sync post to ES - postId: {}", postId);
-        try {
-            postSyncService.syncPost(postId);
-            return Result.success("同步成功");
-        } catch (Exception e) {
-            log.error("Error syncing post: {}", postId, e);
-            return Result.error(500, "同步失败: " + e.getMessage());
-        }
+        List<String> keywords = postSearchService.getHotSearchKeywords(size);
+        return Result.success(keywords);
     }
 }

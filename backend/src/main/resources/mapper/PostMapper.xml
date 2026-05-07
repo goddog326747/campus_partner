@@ -91,4 +91,64 @@
         DELETE FROM post WHERE id = #{id}
     </delete>
 
+    <!-- 根据完整条件查询帖子列表（支持用户属性过滤） -->
+    <select id="selectByConditionWithFilters" resultMap="BaseResultMap">
+        SELECT p.<include refid="Base_Column_List"/>
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        <where>
+            <!-- 帖子条件 -->
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <!-- 用户条件 -->
+            <if test="location != null and location != ''">
+                AND u.location = #{location}
+            </if>
+            <if test="school != null and school != ''">
+                AND u.school = #{school}
+            </if>
+            <if test="verified != null">
+                AND u.verified = #{verified}
+            </if>
+            <if test="gender != null">
+                AND u.gender = #{gender}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据完整条件查询帖子总数 -->
+    <select id="countByConditionWithFilters" resultType="long">
+        SELECT COUNT(*)
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        <where>
+            <!-- 帖子条件 -->
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <!-- 用户条件 -->
+            <if test="location != null and location != ''">
+                AND u.location = #{location}
+            </if>
+            <if test="school != null and school != ''">
+                AND u.school = #{school}
+            </if>
+            <if test="verified != null">
+                AND u.verified = #{verified}
+            </if>
+            <if test="gender != null">
+                AND u.gender = #{gender}
+            </if>
+        </where>
+    </select>
+
 </mapper>

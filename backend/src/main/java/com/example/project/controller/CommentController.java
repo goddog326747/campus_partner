@@ -38,13 +38,8 @@ public class CommentController {
     @GetMapping("/list")
     public Result<List<Comment>> listComments(CommentQueryRequestDTO request) {
         logger.info("Fetching comments for postId: {}, page: {}, size: {}", request.getPostId(), request.getPageNum(), request.getPageSize());
-        try {
-            List<Comment> comments = commentService.listCommentsByPost(request.getPostId(), request.getPageNum(), request.getPageSize());
-            return Result.success(comments);
-        } catch (Exception e) {
-            logger.error("Error fetching comments for postId: {}", request.getPostId(), e);
-            return Result.error(500, "获取评论列表失败");
-        }
+        List<Comment> comments = commentService.listCommentsByPost(request.getPostId(), request.getPageNum(), request.getPageSize());
+        return Result.success(comments);
     }
 
     /**
@@ -56,17 +51,12 @@ public class CommentController {
     @PostMapping("/create")
     public Result<String> createComment(@RequestBody Comment comment) {
         logger.info("Creating comment for postId: {}", comment.getPostId());
-        try {
-            boolean success = commentService.createComment(comment);
-            if (success) {
-                logger.info("Successfully created comment with ID: {}", comment.getId());
-                return Result.success("评论成功");
-            } else {
-                return Result.error(500, "评论失败");
-            }
-        } catch (Exception e) {
-            logger.error("Error creating comment", e);
-            return Result.error(500, "评论失败: " + e.getMessage());
+        boolean success = commentService.createComment(comment);
+        if (success) {
+            logger.info("Successfully created comment with ID: {}", comment.getId());
+            return Result.success("评论成功");
+        } else {
+            return Result.error(500, "评论失败");
         }
     }
 
@@ -82,16 +72,11 @@ public class CommentController {
     @DeleteMapping("/delete/{commentId}")
     public Result<String> deleteComment(@PathVariable Long commentId) {
         logger.info("Deleting comment: {}", commentId);
-        try {
-            boolean success = commentService.deleteComment(commentId);
-            if (success) {
-                return Result.success("删除成功");
-            } else {
-                return Result.error(500, "删除失败");
-            }
-        } catch (Exception e) {
-            logger.error("Error deleting comment: {}", commentId, e);
-            return Result.error(500, "删除失败: " + e.getMessage());
+        boolean success = commentService.deleteComment(commentId);
+        if (success) {
+            return Result.success("删除成功");
+        } else {
+            return Result.error(500, "删除失败");
         }
     }
 
@@ -107,13 +92,8 @@ public class CommentController {
     @PostMapping("/like/{commentId}")
     public Result<Integer> toggleLike(@PathVariable Long commentId) {
         logger.info("Toggling like for comment: {}", commentId);
-        try {
-            Integer likeCount = commentService.toggleLike(commentId);
-            return Result.success(likeCount);
-        } catch (Exception e) {
-            logger.error("Error toggling like for comment: {}", commentId, e);
-            return Result.error(500, "操作失败: " + e.getMessage());
-        }
+        Integer likeCount = commentService.toggleLike(commentId);
+        return Result.success(likeCount);
     }
 
     /**
@@ -125,12 +105,7 @@ public class CommentController {
     @GetMapping("/replies/{parentCommentId}")
     public Result<List<Comment>> listReplies(@PathVariable Long parentCommentId) {
         logger.info("Fetching replies for comment: {}", parentCommentId);
-        try {
-            List<Comment> replies = commentService.listReplies(parentCommentId);
-            return Result.success(replies);
-        } catch (Exception e) {
-            logger.error("Error fetching replies for comment: {}", parentCommentId, e);
-            return Result.error(500, "获取回复失败");
-        }
+        List<Comment> replies = commentService.listReplies(parentCommentId);
+        return Result.success(replies);
     }
 }

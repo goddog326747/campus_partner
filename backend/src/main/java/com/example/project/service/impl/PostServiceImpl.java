@@ -49,11 +49,9 @@ public class PostServiceImpl implements PostService {
         logger.info("Listing posts with page - category: {}, keyword: {}, pageNum: {}, pageSize: {}",
                 category, keyword, pageNum, pageSize);
         try {
-            // 先查询所有符合条件的帖子（为了获取总数）
             List<Post> allPosts = postMapper.selectByCondition(category, keyword);
             long total = allPosts.size();
 
-            // 填充用户信息
             for (Post post : allPosts) {
                 if (post.getUserId() != null) {
                     User user = userMapper.selectById(post.getUserId());
@@ -64,7 +62,6 @@ public class PostServiceImpl implements PostService {
                 }
             }
 
-            // 手动分页
             int start = (pageNum - 1) * pageSize;
             if (start >= allPosts.size()) {
                 return PageResult.of(new ArrayList<>(), total, pageNum, pageSize);
@@ -85,35 +82,23 @@ public class PostServiceImpl implements PostService {
         logger.info("Listing posts with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}, pageNum: {}, pageSize: {}",
                 category, keyword, location, school, verified, gender, pageNum, pageSize);
 
-        // For now, use basic condition query. Advanced filtering can be added in XML
-        List<Post> posts = postMapper.selectByCondition(category, keyword);
+        Integer verifiedInt = null;
+        if (verified != null) {
+            verifiedInt = verified ? 2 : 0;
+        }
 
-        // Populate user information with filters
-        List<Post> filteredPosts = new ArrayList<>();
+        int offset = (pageNum - 1) * pageSize;
+
+        List<Post> posts = postMapper.selectByConditionWithFilters(
+                category, keyword, location, school, verifiedInt, gender, offset, pageSize);
+
+        long total = postMapper.countByConditionWithFilters(
+                category, keyword, location, school, verifiedInt, gender);
+
         for (Post post : posts) {
             if (post.getUserId() != null) {
                 User user = userMapper.selectById(post.getUserId());
                 if (user != null) {
-                    // Apply user filters
-                    if (location != null && !location.isEmpty() && !location.equals(user.getLocation())) {
-                        continue;
-                    }
-                    if (school != null && !school.isEmpty() && !school.equals(user.getSchool())) {
-                        continue;
-                    }
-                    if (verified != null) {
-                        // verified: 0=未认证, 1=认证中, 2=已认证
-                        // 前端传递 verified=true 表示筛选已认证用户
-                        Integer userVerified = user.getVerified();
-                        boolean isUserVerified = userVerified != null && userVerified == 2;
-                        if (verified.booleanValue() != isUserVerified) {
-                            continue;
-                        }
-                    }
-                    if (gender != null && !gender.equals(user.getGender())) {
-                        continue;
-                    }
-
                     post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
                     post.setAvatar(user.getAvatar());
                     post.setUserLocation(user.getLocation());
@@ -122,21 +107,10 @@ public class PostServiceImpl implements PostService {
                     post.setUserGender(user.getGender());
                 }
             }
-            filteredPosts.add(post);
         }
 
-        long total = filteredPosts.size();
-
-        // Manual pagination
-        int start = (pageNum - 1) * pageSize;
-        if (start >= filteredPosts.size()) {
-            return PageResult.of(new ArrayList<>(), total, pageNum, pageSize);
-        }
-        int end = Math.min(start + pageSize, filteredPosts.size());
-        List<Post> pagePosts = filteredPosts.subList(start, end);
-
-        logger.info("Successfully retrieved {} posts (total: {})", pagePosts.size(), total);
-        return PageResult.of(pagePosts, total, pageNum, pageSize);
+        logger.info("Successfully retrieved {} posts (total: {})", posts.size(), total);
+        return PageResult.of(posts, total, pageNum, pageSize);
     }
 
     @Override
@@ -152,7 +126,6 @@ public class PostServiceImpl implements PostService {
             int result = postMapper.insert(post);
             if (result > 0) {
                 logger.info("Successfully created post with ID: {}", post.getId());
-                // 同步到 ES
                 postSyncService.syncPost(post);
                 return true;
             } else {
@@ -239,7 +212,6 @@ public class PostServiceImpl implements PostService {
             }
         }
         postMapper.deleteById(postId);
-        // 从 ES 删除
         postSyncService.deletePostFromEs(postId);
         logger.info("Successfully deleted post - id: {}", postId);
     }

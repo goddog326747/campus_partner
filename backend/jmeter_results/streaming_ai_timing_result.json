@@ -1,0 +1,38 @@
+{
+  "test_time": "2026-05-02 23:54:54",
+  "api_url": "http://localhost:8080/api/ai/stream/post/generate",
+  "test_count": 3,
+  "success_count": 3,
+  "avg_first_token_ms": 13.280232747395834,
+  "min_first_token_ms": 3.299236297607422,
+  "max_first_token_ms": 27.42481231689453,
+  "results": [
+    {
+      "test_no": 1,
+      "topic": "周末打篮球",
+      "first_token_ms": 9.116649627685547,
+      "first_token_sec": 0.009116649627685547,
+      "total_elapsed_ms": 9.627580642700195,
+      "status": "success",
+      "http_code": 200
+    },
+    {
+      "test_no": 2,
+      "topic": "图书馆自习",
+      "first_token_ms": 3.299236297607422,
+      "first_token_sec": 0.003299236297607422,
+      "total_elapsed_ms": 3.299236297607422,
+      "status": "success",
+      "http_code": 200
+    },
+    {
+      "test_no": 3,
+      "topic": "一起去爬山",
+      "first_token_ms": 27.42481231689453,
+      "first_token_sec": 0.02742481231689453,
+      "total_elapsed_ms": 27.42481231689453,
+      "status": "success",
+      "http_code": 200
+    }
+  ]
+}

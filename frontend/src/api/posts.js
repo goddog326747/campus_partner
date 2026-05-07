@@ -1,19 +1,17 @@
 import http from './http'
 
-export function listPosts(params) {
-  return http.get('/post/list', { params })
-}
+// ========== CRUD + 基础查询（走 MySQL）==========
 
-export function listPostsWithFilter(params) {
-  return http.get('/post/list/filter', { params })
+export function listPosts(params) {
+  return http.get('/posts', { params })
 }
 
 export function getCategories() {
-  return http.get('/post/categories')
+  return http.get('/posts/categories')
 }
 
 export function createPost(formData) {
-  return http.post('/post/create', formData, {
+  return http.post('/posts', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -21,12 +19,44 @@ export function createPost(formData) {
 }
 
 export function getPost(id) {
-  return http.get(`/post/detail/${id}`)
+  return http.get(`/posts/${id}`)
 }
 
 export function deletePost(id) {
-  return http.delete(`/post/${id}`)
+  return http.delete(`/posts/${id}`)
 }
+
+export function getPostsByUser(userId) {
+  return http.get(`/posts/user/${userId}`)
+}
+
+// ========== 搜索接口（走 Elasticsearch）==========
+
+export function searchPostsByKeyword(params) {
+  return http.get('/posts/search/keyword', { params })
+}
+
+export function searchPostsAdvanced(data) {
+  return http.post('/posts/search/advanced', data)
+}
+
+export function searchPostsByCategory(category, params) {
+  return http.get(`/posts/search/category/${category}`, { params })
+}
+
+export function searchPostsByDestination(params) {
+  return http.get('/posts/search/destination', { params })
+}
+
+export function getSearchSuggestions(params) {
+  return http.get('/posts/search/suggestions', { params })
+}
+
+export function getHotSearchKeywords(params) {
+  return http.get('/posts/search/hot-keywords', { params })
+}
+
+// ========== 评论接口 ==========
 
 export function listComments(postId, params = {}) {
   const defaultParams = { pageNum: 1, pageSize: 10 }
@@ -47,8 +77,4 @@ export function toggleLike(commentId) {
 
 export function listReplies(parentCommentId) {
   return http.get(`/comment/replies/${parentCommentId}`)
-}
-
-export function getPostsByUser(userId) {
-  return http.get(`/post/user/${userId}`)
 }

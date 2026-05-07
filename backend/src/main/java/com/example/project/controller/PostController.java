@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.project.common.CategoryConstants;
 import com.example.project.common.PageResult;
 import com.example.project.common.Result;
-import com.example.project.dto.PostFilterRequestDTO;
+import com.example.project.dto.PostQueryRequest;
 import com.example.project.entity.Post;
 import com.example.project.service.PostService;
 
@@ -33,7 +33,7 @@ import com.example.project.service.PostService;
  * @since 1.0
  */
 @RestController
-@RequestMapping("/api/post")
+@RequestMapping("/api/posts")
 public class PostController {
 
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
@@ -49,54 +49,24 @@ public class PostController {
     @GetMapping("/categories")
     public Result<String[]> getCategories() {
         logger.info("Fetching all post categories");
-        try {
-            String[] categories = CategoryConstants.ALL_CATEGORIES;
-            logger.info("Successfully fetched {} categories", categories.length);
-            return Result.success(categories);
-        } catch (Exception e) {
-            logger.error("Error fetching categories", e);
-            return Result.error(500, "获取分类失败");
-        }
+        String[] categories = CategoryConstants.ALL_CATEGORIES;
+        logger.info("Successfully fetched {} categories", categories.length);
+        return Result.success(categories);
     }
 
     /**
-     * 获取帖子列表（简单查询，支持分页）
+     * 获取帖子列表（支持分页和筛选）
      *
-     * @param category 分类筛选条件，可选
-     * @param keyword  关键词搜索条件，可选
-     * @param pageNum  页码，默认1
-     * @param pageSize 每页大小，默认10
+     * @param request 查询请求DTO，包含分类、关键词、地点、学校、认证状态、性别等筛选条件
      * @return 分页帖子列表
      */
-    @GetMapping("/list")
-    public Result<PageResult<Post>> list(@RequestParam(required = false) String category,
-                                         @RequestParam(required = false) String keyword,
-                                         @RequestParam(defaultValue = "1") int pageNum,
-                                         @RequestParam(defaultValue = "10") int pageSize) {
-        logger.info("Fetching post list - category: {}, keyword: {}, pageNum: {}, pageSize: {}",
-                category, keyword, pageNum, pageSize);
-        try {
-            PageResult<Post> result = postService.listPostsWithPage(category, keyword, pageNum, pageSize);
-            logger.info("Successfully fetched {} posts (total: {})", result.getRecords().size(), result.getTotal());
-            return Result.success(result);
-        } catch (Exception e) {
-            logger.error("Error fetching post list", e);
-            return Result.error(500, "获取帖子列表失败");
-        }
-    }
-
-    /**
-     * 获取帖子列表（高级筛选，分页）
-     *
-     * @param request 筛选请求DTO，包含分类、关键词、地点、学校、认证状态、性别等筛选条件
-     * @return 分页帖子列表
-     */
-    @GetMapping("/list/filter")
-    public Result<PageResult<Post>> listWithFilter(PostFilterRequestDTO request) {
-        logger.info("Fetching post list with filters - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}, pageNum: {}, pageSize: {}",
+    @GetMapping
+    public Result<PageResult<Post>> list(PostQueryRequest request) {
+        logger.info("Fetching post list - category: {}, keyword: {}, location: {}, school: {}, verified: {}, gender: {}, pageNum: {}, pageSize: {}",
                 request.getCategory(), request.getKeyword(), request.getLocation(), request.getSchool(), request.getVerified(), request.getGender(), request.getPageNum(), request.getPageSize());
-        try {
-            PageResult<Post> result = postService.listPostsWithFilter(
+        PageResult<Post> result;
+        if (request.hasUserFilters()) {
+            result = postService.listPostsWithFilter(
                     request.getCategory(),
                     request.getKeyword(),
                     request.getLocation(),
@@ -105,11 +75,15 @@ public class PostController {
                     request.getGender(),
                     request.getPageNum(),
                     request.getPageSize());
-            return Result.success(result);
-        } catch (Exception e) {
-            logger.error("Error fetching post list with filters", e);
-            return Result.error(500, "获取帖子列表失败");
+        } else {
+            result = postService.listPostsWithPage(
+                    request.getCategory(),
+                    request.getKeyword(),
+                    request.getPageNum(),
+                    request.getPageSize());
         }
+        logger.info("Successfully fetched {} posts (total: {})", result.getRecords().size(), result.getTotal());
+        return Result.success(result);
     }
 
     /**
@@ -118,19 +92,14 @@ public class PostController {
      * @param id 帖子ID
      * @return 帖子详情信息
      */
-    @GetMapping("/detail/{id}")
+    @GetMapping("/{id}")
     public Result<Post> getDetail(@PathVariable Long id) {
         logger.info("Fetching post detail - id: {}", id);
-        try {
-            Post post = postService.getPostById(id);
-            if (post == null) {
-                return Result.error(404, "帖子不存在");
-            }
-            return Result.success(post);
-        } catch (Exception e) {
-            logger.error("Error fetching post detail", e);
-            return Result.error(500, "获取帖子详情失败");
+        Post post = postService.getPostById(id);
+        if (post == null) {
+            return Result.error(404, "帖子不存在");
         }
+        return Result.success(post);
     }
 
     /**
@@ -142,17 +111,12 @@ public class PostController {
     @GetMapping("/user/{userId}")
     public Result<List<Post>> getPostsByUser(@PathVariable Long userId) {
         logger.info("Fetching posts by user - userId: {}", userId);
-        try {
-            List<Post> posts = postService.getPostsByUserId(userId);
-            return Result.success(posts);
-        } catch (Exception e) {
-            logger.error("Error fetching user posts", e);
-            return Result.error(500, "获取用户帖子失败");
-        }
+        List<Post> posts = postService.getPostsByUserId(userId);
+        return Result.success(posts);
     }
 
     /**
-     * 创建新帖子
+     * 创建新帖子（支持图片上传）
      *
      * @param title       帖子标题
      * @param content     帖子内容
@@ -161,7 +125,7 @@ public class PostController {
      * @param images      图片文件列表，可选
      * @return 操作结果
      */
-    @PostMapping("/create")
+    @PostMapping
     public Result<String> create(
             @RequestParam("title") String title,
             @RequestParam("content") String content,
@@ -169,31 +133,26 @@ public class PostController {
             @RequestParam(value = "destination", required = false) String destination,
             @RequestPart(value = "images", required = false) List<MultipartFile> images) {
         logger.info("Creating new post - title: {}, category: {}", title, category);
-        try {
-            Post post = new Post();
-            post.setTitle(title);
-            post.setContent(content);
-            post.setCategory(category);
-            post.setDestination(destination);
-            
-            if (images != null && !images.isEmpty()) {
-                List<String> imageUrls = postService.uploadImages(images);
-                if (!imageUrls.isEmpty()) {
-                    post.setImages(toJsonArray(imageUrls));
-                }
+        Post post = new Post();
+        post.setTitle(title);
+        post.setContent(content);
+        post.setCategory(category);
+        post.setDestination(destination);
+        
+        if (images != null && !images.isEmpty()) {
+            List<String> imageUrls = postService.uploadImages(images);
+            if (!imageUrls.isEmpty()) {
+                post.setImages(toJsonArray(imageUrls));
             }
-            
-            boolean success = postService.createPost(post);
-            if (success) {
-                logger.info("Successfully created post with ID: {}", post.getId());
-                return Result.success("发布成功");
-            } else {
-                logger.warn("Failed to create post - title: {}", title);
-                return Result.error(500, "发布失败");
-            }
-        } catch (Exception e) {
-            logger.error("Error creating post", e);
-            return Result.error(500, "发布失败: " + e.getMessage());
+        }
+        
+        boolean success = postService.createPost(post);
+        if (success) {
+            logger.info("Successfully created post with ID: {}", post.getId());
+            return Result.success("发布成功");
+        } else {
+            logger.warn("Failed to create post - title: {}", title);
+            return Result.error(500, "发布失败");
         }
     }
 
@@ -206,13 +165,8 @@ public class PostController {
     @DeleteMapping("/{id}")
     public Result<String> deletePost(@PathVariable Long id) {
         logger.info("Deleting post - id: {}", id);
-        try {
-            postService.deletePost(id);
-            return Result.success("删除成功");
-        } catch (Exception e) {
-            logger.error("Error deleting post", e);
-            return Result.error(500, "删除失败: " + e.getMessage());
-        }
+        postService.deletePost(id);
+        return Result.success("删除成功");
     }
     
     /**

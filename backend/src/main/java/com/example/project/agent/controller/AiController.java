@@ -63,14 +63,8 @@ public class AiController {
     @PostMapping("/chat")
     public Result<ChatResponse> chat(@RequestBody ChatRequest request) {
         log.info("AI chat request: mode={}", request.getMode());
-
-        try {
-            ChatResponse response = aiService.chat(request);
-            return Result.success(response);
-        } catch (Exception e) {
-            log.error("AI chat error", e);
-            return Result.error(500, "对话失败: " + e.getMessage());
-        }
+        ChatResponse response = aiService.chat(request);
+        return Result.success(response);
     }
 
     /**
@@ -81,14 +75,8 @@ public class AiController {
     @PostMapping("/post/generate")
     public Result<PostGenerateResponse> generatePost(@RequestBody PostGenerateRequest request) {
         log.info("Generate post request: topic={}", request.getTopic());
-
-        try {
-            PostGenerateResponse response = aiService.generatePost(request);
-            return Result.success(response);
-        } catch (Exception e) {
-            log.error("Generate post error", e);
-            return Result.error(500, "生成帖子失败: " + e.getMessage());
-        }
+        PostGenerateResponse response = aiService.generatePost(request);
+        return Result.success(response);
     }
 
     /**
@@ -99,14 +87,8 @@ public class AiController {
     @PostMapping("/post/publish")
     public Result<PostGenerateResponse> generateAndPublishPost(@RequestBody PostGenerateRequest request) {
         log.info("Generate and publish post request: topic={}", request.getTopic());
-
-        try {
-            PostGenerateResponse response = aiService.generateAndPublishPost(request);
-            return Result.success(response);
-        } catch (Exception e) {
-            log.error("Generate and publish post error", e);
-            return Result.error(500, "生成并发布帖子失败: " + e.getMessage());
-        }
+        PostGenerateResponse response = aiService.generateAndPublishPost(request);
+        return Result.success(response);
     }
 
     /**
@@ -120,17 +102,11 @@ public class AiController {
             @PathVariable String flowName,
             @RequestBody Map<String, Object> input) {
         log.info("Execute flow request: flowName={}", flowName);
-
-        try {
-            FlowResult result = aiService.executeFlow(flowName, input);
-            if (result.isSuccess()) {
-                return Result.success(result);
-            } else {
-                return Result.error(500, "流程执行失败: " + result.getError());
-            }
-        } catch (Exception e) {
-            log.error("Execute flow error", e);
-            return Result.error(500, "执行流程失败: " + e.getMessage());
+        FlowResult result = aiService.executeFlow(flowName, input);
+        if (result.isSuccess()) {
+            return Result.success(result);
+        } else {
+            return Result.error(500, "流程执行失败: " + result.getError());
         }
     }
 
@@ -142,13 +118,10 @@ public class AiController {
     @GetMapping("/history/{executionId}")
     public Result<FlowContext> getExecutionHistory(@PathVariable String executionId) {
         log.info("Get execution history: executionId={}", executionId);
-
         FlowContext context = aiService.getExecutionHistory(executionId);
-
         if (context == null) {
             return Result.error(404, "执行记录不存在");
         }
-
         return Result.success(context);
     }
 }

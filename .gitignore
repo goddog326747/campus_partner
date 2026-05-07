@@ -1,3 +1,10 @@
+# 只保留 backend 和 frontend 目录，其他全部忽略
+/*
+!/backend/
+!/frontend/
+!.gitignore
+!README.md
+
 # Dependencies
 node_modules/
 dist/
@@ -21,3 +28,19 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Backend specific
+backend/target/
+backend/*.log
+backend/.idea/
+backend/*.iml
+backend/jmeter_results/
+backend/jmeter_test_plan.jmx
+backend/jmeter_ai_test.jmx
+backend/*.py
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/.idea/
+frontend/*.iml
