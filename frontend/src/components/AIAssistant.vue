@@ -66,6 +66,7 @@ import { useRoute } from 'vue-router'
 import { Service, User, Minus } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 import http from '../api/http'
+import { aiChatStream } from '../api/ai'
 
 marked.setOptions({
   breaks: true,
@@ -183,16 +184,9 @@ const fetchQwenResponse = async (text) => {
 
   try {
     // 使用流式接口
-    const response = await fetch('/api/ai/stream/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
-      },
-      body: JSON.stringify({ 
-        message: text,
-        mode: 'SIMPLE'
-      })
+    const response = await aiChatStream({
+      message: text,
+      mode: 'SIMPLE'
     })
 
     if (!response.ok) {

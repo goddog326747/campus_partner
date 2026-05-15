@@ -75,27 +75,15 @@
       </div>
     </div>
 
-    <!-- 生成中状态 -->
+    <!-- 生成中状态 - 简化为直接显示流式内容 -->
     <div class="generating-section" v-if="generating">
-      <div class="generating-animation">
-        <div class="pulse-ring"></div>
-        <div class="pulse-ring"></div>
-        <div class="pulse-ring"></div>
-        <div class="center-icon">
-          <el-icon><MagicStick /></el-icon>
+      <div class="stream-content">
+        <div class="stream-header">
+          <el-icon class="generating-icon"><MagicStick /></el-icon>
+          <span>AI 正在创作...</span>
         </div>
-      </div>
-      <h3>AI 正在创作中...</h3>
-      <p class="progress-text">{{ progressText }}</p>
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: progress + '%' }"></div>
-      </div>
-      
-      <!-- 实时预览 -->
-      <div class="preview-section" v-if="accumulatedContent">
-        <div class="preview-label">实时预览</div>
-        <div class="preview-content markdown-preview">
-          <MarkdownRenderer :content="accumulatedContent" />
+        <div class="stream-body markdown-preview">
+          <MarkdownRenderer :content="accumulatedContent || '正在思考...'" />
         </div>
       </div>
     </div>
@@ -152,6 +140,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, MagicStick, Check, Refresh, Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCategories } from '../api/posts'
+import { aiGeneratePostStream } from '../api/ai'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
 const router = useRouter()
@@ -218,15 +207,8 @@ const startGenerate = () => {
 
 const streamGenerate = async (requestData) => {
   try {
-    // 使用 fetch 获取 ReadableStream 并处理 SSE
-    const response = await fetch('/api/ai/stream/post/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
-      },
-      body: JSON.stringify(requestData)
-    })
+    // 使用封装好的流式接口
+    const response = await aiGeneratePostStream(requestData)
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -621,121 +603,47 @@ const useResult = () => {
   cursor: not-allowed;
 }
 
-/* 生成中状态 */
+/* 生成中状态 - 流式显示 */
 .generating-section {
-  padding: 60px 24px;
-  text-align: center;
+  padding: 24px 16px;
 }
 
-.generating-animation {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 30px;
-}
-
-.pulse-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: var(--gradient-primary);
-  opacity: 0.3;
-  animation: pulse 2s ease-out infinite;
-}
-
-.pulse-ring:nth-child(2) {
-  animation-delay: 0.5s;
-}
-
-.pulse-ring:nth-child(3) {
-  animation-delay: 1s;
-}
-
-@keyframes pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(0.5);
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.5);
-    opacity: 0;
-  }
-}
-
-.center-icon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60px;
-  height: 60px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-}
-
-.generating-section h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.progress-text {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
-.progress-bar {
-  width: 200px;
-  height: 6px;
-  background: var(--border-light);
-  border-radius: 3px;
-  margin: 0 auto 30px;
+.stream-content {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
   overflow: hidden;
 }
 
-.progress-fill {
-  height: 100%;
+.stream-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
   background: var(--gradient-primary);
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.preview-section {
-  margin-top: 30px;
-  text-align: left;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+.generating-icon {
+  font-size: 16px;
+  animation: rotate 2s linear infinite;
 }
 
-.preview-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.preview-content {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
+.stream-body {
   padding: 16px;
-  max-height: 300px;
+  min-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
-  text-align: left;
-  border: 1px solid var(--border-light);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
 }
 
 /* 结果状态 */

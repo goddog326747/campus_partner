@@ -4,11 +4,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
-    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMM ENT '主键ID',
     `username` varchar(50) NOT NULL COMMENT '用户名',
     `password` varchar(100) NOT NULL COMMENT '密码',
     `nickname` varchar(50) DEFAULT NULL COMMENT '昵称',
-    `avatar` varchar(255) DEFAULT NULL COMMENT '头像URL',
+    `avatar` TEXT DEFAULT NULL COMMENT '头像URL或Base64数据',
     `gender` tinyint DEFAULT 0 COMMENT '性别: 0-未知, 1-男, 2-女',
     `birthday` date DEFAULT NULL COMMENT '生日',
     `bio` varchar(500) DEFAULT NULL COMMENT '个人简介',

@@ -14,7 +14,7 @@
           <el-sub-menu v-else index="user">
             <template #title>
               <span style="display: flex; align-items: center;">
-                <el-avatar :size="28" :src="currentUser?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" style="margin-right: 8px; border: 2px solid rgba(255,255,255,0.3);" />
+                <el-avatar :size="28" :src="getAvatarUrl(currentUser?.avatar)" style="margin-right: 8px; border: 2px solid rgba(255,255,255,0.3);" />
                 {{ currentUser?.nickname || '用户' }}
               </span>
             </template>
@@ -47,6 +47,13 @@ const router = useRouter()
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
 const currentUser = computed(() => store.getters.currentUser)
+
+// 计算完整头像 URL
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+  if (avatar.startsWith('http')) return avatar
+  return `http://localhost:8080${avatar}`
+}
 
 const handleLogout = () => {
   store.commit('LOGOUT')

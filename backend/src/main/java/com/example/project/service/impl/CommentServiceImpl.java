@@ -58,9 +58,10 @@ public class CommentServiceImpl implements CommentService {
 
         try {
             // Set user ID from context
-            if (UserContext.get() != null) {
-                comment.setUserId(UserContext.get().getId());
-                logger.debug("Setting comment userId from UserContext: {}", UserContext.get().getId());
+            Long userId = UserContext.getUserId();
+            if (userId != null) {
+                comment.setUserId(userId);
+                logger.debug("Setting comment userId from UserContext: {}", userId);
             } else {
                 logger.warn("No user in context, comment creation may fail");
                 return false;
@@ -99,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
             }
 
             // Only allow deletion by comment owner or admin
-            Long currentUserId = UserContext.get() != null ? UserContext.get().getId() : null;
+            Long currentUserId = UserContext.getUserId();
             if (!comment.getUserId().equals(currentUserId)) {
                 logger.warn("User {} attempted to delete comment owned by user {}", currentUserId, comment.getUserId());
                 return false;

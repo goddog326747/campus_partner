@@ -6,6 +6,10 @@ export function listPosts(params) {
   return http.get('/posts', { params })
 }
 
+export function listPostsWithFilter(params) {
+  return http.get('/posts', { params })
+}
+
 export function getCategories() {
   return http.get('/posts/categories')
 }

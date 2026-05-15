@@ -49,7 +49,7 @@ aliyun:
   ai:
     api-key: sk-c0efcf97c9a041ab8f9d998012ad1bc9
     api-url: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-    model: qwen3.5-plus
+    model: deepseek-v4-flash
 
 storage:
   type: local

@@ -1,6 +1,5 @@
 package com.example.project.agent.flow;
 
-import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,47 +7,39 @@ import lombok.Getter;
 import java.util.function.Function;
 
 /**
- * 流程边 - 连接节点的有向边
- * 
- * ============================================================
- *                    边的类型和作用
- * ============================================================
- * 
- * 【顺序边】
- * - 默认边类型
- * - 前一个节点成功后执行后一个节点
- * - condition = null 或返回 true
- * 
- * 【条件边】
- * - 根据条件决定是否流转
- * - condition 返回 true 时才流转
- * - 支持复杂逻辑判断
- * 
- * 【默认边】
- * - 当其他条件边都不满足时执行
- * - 用于条件分支的默认路径
- * 
- * 【错误边】
- * - 当前节点执行失败时执行
- * - 用于错误处理和恢复
- * 
- * ============================================================
+ * 流程边，表示流程节点之间的连接关系。
+ * <p>
+ * 每条边包含起始节点、目标节点、边类型（顺序或条件）以及可选的条件判断函数，
+ * 用于控制流程的执行路径和流转逻辑。
+ *
+ * @author example
+ * @since 1.0.0
  */
 @Getter
 @Builder
 @AllArgsConstructor
 public class FlowEdge {
-    
+
+    /** 起始节点 ID */
     private final String fromNodeId;
+    /** 目标节点 ID */
     private final String toNodeId;
+    /** 条件判断函数，用于条件边 */
     private final Function<FlowContext, Boolean> condition;
+    /** 边类型，默认为顺序边 */
     @Builder.Default
     private final EdgeType type = EdgeType.SEQUENTIAL;
+    /** 边标签，用于描述或标识 */
     @Builder.Default
     private final String label = "";
-    
+
     /**
-     * 判断是否可以通过此边流转
+     * 判断当前边是否可以通过（遍历）。
+     * <p>
+     * 若无边条件则直接返回 true，否则执行条件函数判断。
+     *
+     * @param context 流程执行上下文
+     * @return 是否可以通过
      */
     public boolean canTraverse(FlowContext context) {
         if (condition == null) {
@@ -56,72 +47,46 @@ public class FlowEdge {
         }
         return condition.apply(context);
     }
-    
+
     /**
-     * 创建顺序边
+     * 创建一条顺序边。
+     *
+     * @param from 起始节点 ID
+     * @param to   目标节点 ID
+     * @return 顺序边实例
      */
     public static FlowEdge sequential(String from, String to) {
         return FlowEdge.builder()
                 .fromNodeId(from)
                 .toNodeId(to)
                 .type(EdgeType.SEQUENTIAL)
-                .label("sequential")
                 .build();
     }
-    
+
     /**
-     * 创建条件边
+     * 创建一条条件边。
+     *
+     * @param from      起始节点 ID
+     * @param to        目标节点 ID
+     * @param condition 条件判断函数
+     * @return 条件边实例
      */
-    public static FlowEdge conditional(String from, String to, Function<FlowContext, Boolean> condition, String label) {
+    public static FlowEdge conditional(String from, String to, Function<FlowContext, Boolean> condition) {
         return FlowEdge.builder()
                 .fromNodeId(from)
                 .toNodeId(to)
                 .condition(condition)
                 .type(EdgeType.CONDITIONAL)
-                .label(label)
                 .build();
     }
-    
+
     /**
-     * 创建成功边（前一个节点执行成功时）
-     */
-    public static FlowEdge onSuccess(String from, String to) {
-        return FlowEdge.builder()
-                .fromNodeId(from)
-                .toNodeId(to)
-                .condition(ctx -> {
-                    FlowNodeExecutionResult lastResult = ctx.getLastResult();
-                    return lastResult != null && lastResult.isSuccess();
-                })
-                .type(EdgeType.ON_SUCCESS)
-                .label("onSuccess")
-                .build();
-    }
-    
-    /**
-     * 创建失败边（前一个节点执行失败时）
-     */
-    public static FlowEdge onFailure(String from, String to) {
-        return FlowEdge.builder()
-                .fromNodeId(from)
-                .toNodeId(to)
-                .condition(ctx -> {
-                    FlowNodeExecutionResult lastResult = ctx.getLastResult();
-                    return lastResult != null && !lastResult.isSuccess();
-                })
-                .type(EdgeType.ON_FAILURE)
-                .label("onFailure")
-                .build();
-    }
-    
-    /**
-     * 边类型枚举
+     * 边类型枚举。
      */
     public enum EdgeType {
-        SEQUENTIAL,     // 顺序边
-        CONDITIONAL,    // 条件边
-        ON_SUCCESS,     // 成功边
-        ON_FAILURE,     // 失败边
-        DEFAULT         // 默认边
+        /** 顺序边，无条件直接流转 */
+        SEQUENTIAL,
+        /** 条件边，需满足条件才流转 */
+        CONDITIONAL
     }
 }

@@ -10,7 +10,7 @@
         <el-tab-pane label="基本信息" name="basic">
           <div class="avatar-section">
             <div class="avatar-wrapper">
-              <el-avatar :size="100" :src="userInfo.avatar || defaultAvatar" />
+              <el-avatar :size="100" :src="avatarUrl" />
               <el-upload
                 class="avatar-uploader"
                 action="#"
@@ -191,17 +191,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 import { CircleCheckFilled, Clock } from '@element-plus/icons-vue'
-import { getUserProfile, updateProfile, updatePassword, updateAvatar } from '../api/auth'
+import { getUserProfile, updateProfile, updatePassword, updateAvatar, uploadAvatarFile } from '../api/auth'
 
 const store = useStore()
 const activeTab = ref('basic')
 const saving = ref(false)
 const changingPassword = ref(false)
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+
+// 计算完整头像 URL
+const avatarUrl = computed(() => {
+  if (!userInfo.avatar) return defaultAvatar
+  // 如果已经是完整 URL，直接返回
+  if (userInfo.avatar.startsWith('http')) return userInfo.avatar
+  // 拼接后端地址
+  return `http://localhost:8080${userInfo.avatar}`
+})
 
 const userInfo = reactive({
   id: null,
@@ -246,9 +255,16 @@ const fetchProfile = async () => {
       Object.assign(userInfo, res.data)
       verifyForm.school = res.data.school || ''
       verifyForm.schoolEmail = res.data.schoolEmail || ''
+    } else if (res.code === 401) {
+      ElMessage.error('登录已过期，请重新登录')
+      store.commit('LOGOUT')
+      window.location.href = '/login'
+    } else {
+      ElMessage.error(res.msg || '获取用户信息失败')
     }
   } catch (e) {
-    console.error(e)
+    console.error('获取用户信息失败:', e)
+    ElMessage.error('获取用户信息失败，请检查网络连接')
   }
 }
 
@@ -300,34 +316,70 @@ const changePassword = async () => {
   }
 }
 
+/**
+ * 头像上传处理函数
+ * <p>
+ * 【流程说明】
+ * 1. 校验文件类型和大小
+ * 2. 使用 FormData 上传文件到 /api/file/upload/avatar
+ * 3. 获取返回的文件URL
+ * 4. 调用 updateAvatar 更新用户头像信息
+ * 5. 更新本地状态和 Vuex store
+ * </p>
+ *
+ * @param {File} file 用户选择的图片文件
+ * @returns {boolean} 返回 false 阻止 el-upload 的默认上传行为
+ */
 const beforeAvatarUpload = async (file) => {
+  // 1. 校验文件类型
   const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 2
-  
   if (!isImage) {
     ElMessage.error('只能上传图片文件!')
     return false
   }
+
+  // 2. 校验文件大小（后端限制10MB，前端限制2MB更严格）
+  const isLt2M = file.size / 1024 / 1024 < 2
   if (!isLt2M) {
     ElMessage.error('图片大小不能超过 2MB!')
     return false
   }
-  
-  const reader = new FileReader()
-  reader.onload = async (e) => {
-    const avatar = e.target.result
-    try {
-      const res = await updateAvatar({ avatar })
-      if (res.code === 200) {
-        userInfo.avatar = avatar
-        store.commit('SET_USER', { ...store.getters.currentUser, avatar })
-        ElMessage.success('头像更新成功')
-      }
-    } catch (err) {
-      ElMessage.error('头像上传失败')
+
+  try {
+    // 3. 构建 FormData 对象
+    const formData = new FormData()
+    formData.append('file', file)
+
+    // 4. 上传文件到服务器
+    ElMessage.info('正在上传头像...')
+    const uploadRes = await uploadAvatarFile(formData)
+
+    if (uploadRes.code !== 200) {
+      ElMessage.error(uploadRes.msg || '头像上传失败')
+      return false
     }
+
+    // 5. 获取上传后的文件URL
+    const avatarUrl = uploadRes.data
+
+    // 6. 更新用户头像信息（将URL保存到数据库）
+    const updateRes = await updateAvatar({ avatar: avatarUrl })
+
+    if (updateRes.code === 200) {
+      // 7. 更新本地状态
+      userInfo.avatar = avatarUrl
+      // 8. 更新 Vuex store 中的用户信息
+      store.commit('SET_USER', { ...store.getters.currentUser, avatar: avatarUrl })
+      ElMessage.success('头像更新成功')
+    } else {
+      ElMessage.error(updateRes.msg || '头像保存失败')
+    }
+  } catch (err) {
+    console.error('头像上传失败:', err)
+    ElMessage.error('头像上传失败: ' + (err.message || '网络错误'))
   }
-  reader.readAsDataURL(file)
+
+  // 返回 false 阻止 el-upload 的默认上传行为（我们已经手动处理了）
   return false
 }
 

@@ -64,7 +64,7 @@ public class UserController {
      */
     @PutMapping("/profile")
     public Result<User> updateProfile(@RequestBody User user) {
-        Long userId = UserContext.get().getId();
+        Long userId = UserContext.getUserId();
         return userService.updateProfile(userId, user);
     }
 
@@ -76,7 +76,7 @@ public class UserController {
      */
     @PutMapping("/avatar")
     public Result<User> updateAvatar(@RequestBody UpdateAvatarRequestDTO request) {
-        Long userId = UserContext.get().getId();
+        Long userId = UserContext.getUserId();
         return userService.updateAvatar(userId, request.getAvatar());
     }
 
@@ -88,7 +88,7 @@ public class UserController {
      */
     @PutMapping("/password")
     public Result<String> updatePassword(@RequestBody UpdatePasswordRequestDTO request) {
-        Long userId = UserContext.get().getId();
+        Long userId = UserContext.getUserId();
         return userService.updatePassword(userId, request.getOldPassword(), request.getNewPassword());
     }
 }

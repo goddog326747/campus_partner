@@ -60,15 +60,8 @@ const handleLogin = () => {
           ElMessage.error('登录失败')
         }
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('后端未连接，使用模拟登录')
-          store.commit('SET_TOKEN', 'mock-token-123')
-          store.commit('SET_USER', { id: 1, nickname: '测试用户', avatar: '' })
-          ElMessage.success('模拟登录成功')
-          router.push('/')
-        } else {
-          ElMessage.error('登录服务不可用')
-        }
+        console.error('登录失败:', error)
+        ElMessage.error('登录失败，请检查网络连接或稍后重试')
       } finally {
         loading.value = false
       }

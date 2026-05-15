@@ -68,11 +68,11 @@
     <div class="blog-list" v-loading="loading">
       <el-empty v-if="!posts.length && !loading" description="暂无相关帖子" />
       
-      <div class="blog-box" v-for="(b, index) in posts" :key="b.id" @click="$router.push('/post/' + b.id)" :style="{ animationDelay: `${index * 0.05}s` }">
-        <div class="blog-img" v-if="getPostImages(b).length > 0">
+      <div class="blog-box" v-for="(b, index) in posts" :key="b.id" :style="{ animationDelay: `${index * 0.05}s` }">
+        <div class="blog-img" v-if="getPostImages(b).length > 0" @click="$router.push('/post/' + b.id)">
           <img :src="getPostImages(b)[0]" alt="">
         </div>
-        <div class="blog-content">
+        <div class="blog-content" @click="$router.push('/post/' + b.id)">
           <div class="blog-title">{{ b.title }}</div>
           <div class="blog-info">
              <span class="category-tag">{{ b.category }}</span>
@@ -83,12 +83,25 @@
           </div>
           <div class="blog-desc">{{ b.content }}</div>
           <div class="user-info" v-if="b.username">
-            <el-avatar :size="26" :src="b.avatar" />
+            <el-avatar :size="26" :src="b.avatar ? (b.avatar.startsWith('http') ? b.avatar : 'http://localhost:8080' + b.avatar) : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
             <span class="username">{{ b.username }}</span>
             <el-tag v-if="b.userVerified" type="success" size="small" effect="plain" class="verified-tag">已认证</el-tag>
             <span v-if="b.userLocation" class="user-meta">{{ b.userLocation }}</span>
             <span v-if="b.userSchool" class="user-meta">{{ b.userSchool }}</span>
           </div>
+        </div>
+        <!-- 更多操作按钮 -->
+        <div class="more-actions" v-if="isLoggedIn && currentUser && currentUser.id === b.userId" @click.stop>
+          <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, b)">
+            <el-icon class="more-icon"><MoreFilled /></el-icon>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="delete" type="danger">
+                  <el-icon><Delete /></el-icon>删除帖子
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
       
@@ -108,8 +121,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
-import { Search, Location } from '@element-plus/icons-vue'
-import { listPosts, listPostsWithFilter, getCategories, searchPostsByKeyword, searchPostsAdvanced } from '../api/posts'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Location, MoreFilled, Delete } from '@element-plus/icons-vue'
+import { listPosts, listPostsWithFilter, getCategories, searchPostsByKeyword, searchPostsAdvanced, deletePost } from '../api/posts'
 
 const store = useStore()
 
@@ -265,9 +280,44 @@ const formatTime = (timeStr) => {
 const getPostImages = (post) => {
   if (!post.images) return []
   try {
-    return JSON.parse(post.images)
+    const images = JSON.parse(post.images)
+    // 拼接完整 URL
+    return images.map(url => {
+      if (url.startsWith('http')) return url
+      return `http://localhost:8080${url}`
+    })
   } catch {
     return []
+  }
+}
+
+// 处理下拉菜单命令
+const handleCommand = async (command, post) => {
+  if (command === 'delete') {
+    try {
+      await ElMessageBox.confirm('确定要删除这条帖子吗？删除后不可恢复', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      const res = await deletePost(post.id)
+      if (res.code === 200) {
+        ElMessage.success('删除成功')
+        // 从列表中移除
+        const index = posts.value.findIndex(p => p.id === post.id)
+        if (index > -1) {
+          posts.value.splice(index, 1)
+          total.value--
+        }
+      } else {
+        ElMessage.error(res.msg || '删除失败')
+      }
+    } catch (error) {
+      if (error !== 'cancel') {
+        console.error('删除帖子失败:', error)
+        ElMessage.error('删除失败')
+      }
+    }
   }
 }
 
@@ -432,5 +482,30 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 24px 0;
+}
+
+.more-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.more-icon {
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.more-icon:hover {
+  color: var(--primary-color);
+  background: var(--bg-page);
+}
+
+.blog-box {
+  position: relative;
 }
 </style>

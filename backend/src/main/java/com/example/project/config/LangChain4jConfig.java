@@ -1,5 +1,8 @@
 package com.example.project.config;
 
+import com.example.project.agent.PostTools;
+import com.example.project.agent.flow.executor.LLMNodeExecutor;
+import com.example.project.agent.flow.executor.ToolNodeExecutor;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -111,6 +114,41 @@ public class LangChain4jConfig {
                 .build();
     }
     
+    /**
+     * 创建 LLM 节点执行器 Bean。
+     * <p>
+     * 负责执行 LLM 节点，解析提示词模板并调用大语言模型。
+     */
+    @Bean
+    public LLMNodeExecutor llmNodeExecutor(ChatLanguageModel chatModel) {
+        return new LLMNodeExecutor(chatModel);
+    }
+
+    /**
+     * 创建工具节点执行器 Bean，注册所有可用工具。
+     * <p>
+     * ToolNodeExecutor 是 AgentFlow 框架中工具的唯一来源，
+     * 所有工具必须在执行前注册到这里。
+     */
+    @Bean
+    public ToolNodeExecutor toolNodeExecutor(PostTools postTools) {
+        ToolNodeExecutor executor = new ToolNodeExecutor();
+
+        executor.registerTool("searchPosts", ctx -> {
+            String keyword = ctx.getInput("message");
+            return postTools.searchRelatedPosts(keyword);
+        });
+
+        executor.registerTool("getHotTopics", ctx -> postTools.getHotTopics());
+
+        executor.registerTool("getUserStyle", ctx -> {
+            Long userId = ctx.getInput("userId");
+            return postTools.getUserPostStyle(userId);
+        });
+
+        return executor;
+    }
+
     private String extractBaseUrl(String apiUrl) {
         if (apiUrl.contains("/chat/completions")) {
             return apiUrl.replace("/chat/completions", "");

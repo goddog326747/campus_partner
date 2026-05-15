@@ -94,11 +94,10 @@ public class UserServiceImpl implements UserService {
             return Result.error(404, "用户不存在");
         }
         
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-               .set(User::getAvatar, avatar)
-               .set(User::getUpdateTime, LocalDateTime.now());
-        userMapper.update(null, wrapper);
+        // 直接使用 updateById 更新头像
+        user.setAvatar(avatar);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
         
         User updatedUser = userMapper.selectById(id);
         updatedUser.setPassword(null);

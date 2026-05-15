@@ -119,9 +119,10 @@ public class PostServiceImpl implements PostService {
         try {
             post.setCreateTime(LocalDateTime.now());
             post.setUpdateTime(LocalDateTime.now());
-            if (UserContext.get() != null) {
-                post.setUserId(UserContext.get().getId());
-                logger.debug("Setting post userId from UserContext: {}", UserContext.get().getId());
+            Long userId = UserContext.getUserId();
+            if (userId != null) {
+                post.setUserId(userId);
+                logger.debug("Setting post userId from UserContext: {}", userId);
             }
             int result = postMapper.insert(post);
             if (result > 0) {

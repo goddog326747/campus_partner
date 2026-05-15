@@ -1,101 +1,167 @@
 package com.example.project.agent.flow;
 
-import com.example.project.agent.flow.dto.FlowResult;
 import com.example.project.agent.flow.enums.FlowMode;
-import lombok.Builder;
+import com.example.project.agent.flow.enums.NodeType;
 import lombok.Getter;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
- * Agent Flow 链路执行引擎
- * 
- * ============================================================
- *                    Agent Flow 核心设计
- * ============================================================
- * 
- * Agent Flow 是一个灵活的 AI 工作流编排框架，支持两种核心模式：
- * 
- * 1. 规划执行模式 (Planning & Execution)
- *    - 先规划所有步骤，再按顺序执行
- *    - 适合确定性任务
- *    - 可预见的执行路径
- * 
- * 2. ReAct 模式 (Reasoning + Acting)
- *    - 边推理边执行
- *    - 根据中间结果动态调整下一步
- *    - 适合探索性任务
- * 
- * 核心概念：
- * - FlowNode: 流程节点，代表一个执行单元
- * - FlowEdge: 流程边，代表节点间的流转关系
- * - FlowContext: 流程上下文，存储执行状态和中间结果
- * - FlowEngine: 流程引擎，负责调度和执行
- * 
- * ============================================================
+ * 智能体流程定义类，用于构建和管理 AI 工作流。
+ * <p>
+ * 该类通过 Builder 模式支持灵活地定义流程节点、边、执行模式等，
+ * 并支持同步、异步及带超时的执行方式。
+ * <p>
+ * <b>注意</b>：流程本身不绑定 LLM 模型或工具执行器，这些由 {@link FlowEngine} 在执行时注入。
+ *
+ * @author example
+ * @since 1.0.0
  */
 @Getter
 public class AgentFlow {
-    
+
+    /** 流程唯一标识 */
     private final String flowId;
+    /** 流程名称 */
     private final String name;
+    /** 流程中所有节点，key 为节点 ID */
     private final Map<String, FlowNode> nodes;
+    /** 流程中所有边（连接关系） */
     private final List<FlowEdge> edges;
+    /** 流程执行模式 */
     private final FlowMode mode;
-    
-    @Builder
-    public AgentFlow(String flowId, String name, 
-                     Map<String, FlowNode> nodes, 
-                     List<FlowEdge> edges, 
-                     FlowMode mode) {
+    /** 入口节点 ID */
+    private final String entryNodeId;
+
+    private AgentFlow(String flowId, String name,
+                      Map<String, FlowNode> nodes,
+                      List<FlowEdge> edges,
+                      FlowMode mode,
+                      String entryNodeId) {
         this.flowId = flowId != null ? flowId : UUID.randomUUID().toString();
         this.name = name != null ? name : "UnnamedFlow";
-        this.nodes = new HashMap<>(nodes != null ? nodes : new HashMap<>());
-        this.edges = new ArrayList<>(edges != null ? edges : new ArrayList<>());
+        this.nodes = new HashMap<>(nodes);
+        this.edges = new ArrayList<>(edges);
         this.mode = mode != null ? mode : FlowMode.PLANNING;
-        
+        this.entryNodeId = entryNodeId;
+
         if (this.nodes.isEmpty()) {
             throw new IllegalStateException("Flow must have at least one node");
         }
     }
-    
+
     /**
-     * 执行流程
-     * 
-     * @param initialInput 初始输入
-     * @return 执行结果
+     * 根据节点 ID 获取节点。
+     *
+     * @param nodeId 节点 ID
+     * @return 对应的流程节点，若不存在则返回 null
      */
-    public FlowResult execute(Map<String, Object> initialInput) {
-        FlowContext context = new FlowContext(flowId, initialInput);
-        FlowEngine engine = new FlowEngine(this, context);
-        return engine.execute();
-    }
-    
-    /**
-     * 异步执行流程
-     */
-    public CompletableFuture<FlowResult> executeAsync(Map<String, Object> initialInput) {
-        return CompletableFuture.supplyAsync(() -> execute(initialInput));
-    }
-    
     public FlowNode getNode(String nodeId) {
         return nodes.get(nodeId);
     }
-    
+
+    /**
+     * 获取指定节点的所有出边。
+     *
+     * @param nodeId 节点 ID
+     * @return 出边列表
+     */
     public List<FlowEdge> getOutgoingEdges(String nodeId) {
         return edges.stream()
                 .filter(e -> e.getFromNodeId().equals(nodeId))
                 .toList();
     }
-    
+
+    /**
+     * 获取流程的起始节点列表。
+     * <p>
+     * 优先返回指定的入口节点，其次返回类型为 START 的节点，
+     * 最后返回没有入边的节点。
+     *
+     * @return 起始节点列表
+     */
     public List<FlowNode> getStartNodes() {
+        if (entryNodeId != null) {
+            FlowNode entryNode = nodes.get(entryNodeId);
+            if (entryNode != null) {
+                return List.of(entryNode);
+            }
+        }
+
+        List<FlowNode> explicitStartNodes = nodes.values().stream()
+                .filter(n -> n.getType() == NodeType.START)
+                .toList();
+        if (!explicitStartNodes.isEmpty()) {
+            return explicitStartNodes;
+        }
+
         Set<String> targetNodes = edges.stream()
                 .map(FlowEdge::getToNodeId)
-                .collect(java.util.HashSet::new, java.util.HashSet::add, java.util.HashSet::addAll);
-        
+                .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
         return nodes.values().stream()
                 .filter(n -> !targetNodes.contains(n.getNodeId()))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
+    }
+
+    /**
+     * 获取流程构建器。
+     *
+     * @return Builder 实例
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * AgentFlow 的构建器类，用于链式构建流程定义。
+     */
+    public static class Builder {
+        private String flowId;
+        private String name;
+        private final Map<String, FlowNode> nodes = new HashMap<>();
+        private final List<FlowEdge> edges = new ArrayList<>();
+        private FlowMode mode = FlowMode.PLANNING;
+        private String entryNodeId;
+
+        public Builder flowId(String flowId) {
+            this.flowId = flowId;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder mode(FlowMode mode) {
+            this.mode = mode;
+            return this;
+        }
+
+        public Builder entryNode(String entryNodeId) {
+            this.entryNodeId = entryNodeId;
+            return this;
+        }
+
+        public Builder node(String nodeId, FlowNode node) {
+            this.nodes.put(nodeId, node);
+            return this;
+        }
+
+        public Builder edge(String from, String to) {
+            this.edges.add(FlowEdge.sequential(from, to));
+            return this;
+        }
+
+        public Builder edge(String from, String to, Function<FlowContext, Boolean> condition) {
+            this.edges.add(FlowEdge.conditional(from, to, condition));
+            return this;
+        }
+
+        public AgentFlow build() {
+            return new AgentFlow(flowId, name, nodes, edges, mode, entryNodeId);
+        }
     }
 }

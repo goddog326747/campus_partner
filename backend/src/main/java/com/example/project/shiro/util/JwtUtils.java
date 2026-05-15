@@ -104,4 +104,20 @@ public class JwtUtils {
             return null;
         }
     }
+
+    /**
+     * 从JWT令牌中获取过期时间
+     *
+     * @param token JWT令牌
+     * @return 过期时间戳（毫秒），解析失败返回null
+     */
+    public static Long getExpirationTime(String token) {
+        try {
+            DecodedJWT jwt = JWT.decode(token);
+            Date expiresAt = jwt.getExpiresAt();
+            return expiresAt != null ? expiresAt.getTime() : null;
+        } catch (JWTDecodeException e) {
+            return null;
+        }
+    }
 }

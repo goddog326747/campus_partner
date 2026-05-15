@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 认证控制器
  * <p>
- * 提供用户认证相关的API接口，包括用户登录、注册和获取当前用户信息等功能
+ * 提供用户认证相关的API接口，包括用户登录、注册、登出和获取当前用户信息等功能
  * </p>
  *
  * @author system
@@ -80,5 +80,21 @@ public class AuthController {
     @GetMapping("/me")
     public Result<User> getCurrentUser() {
         return authService.getCurrentUser();
+    }
+
+    /**
+     * 用户登出
+     * <p>
+     * 注：JWT 无状态特性，服务端无法强制使 Token 失效。
+     * 登出由前端清理本地 Token 实现，后端仅记录日志。
+     * Token 将在过期时间后自动失效。
+     * </p>
+     *
+     * @return 登出结果
+     */
+    @PostMapping("/logout")
+    public Result<String> logout() {
+        logger.info("User logged out");
+        return Result.success("登出成功");
     }
 }

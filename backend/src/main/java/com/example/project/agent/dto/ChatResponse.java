@@ -16,6 +16,11 @@ public class ChatResponse {
     private String reply;
     
     /**
+     * 会话 ID（用于保持对话上下文）
+     */
+    private String conversationId;
+    
+    /**
      * 执行 ID（用于追踪）
      */
     private String executionId;

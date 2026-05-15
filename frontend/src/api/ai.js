@@ -1,7 +1,9 @@
 import http from './http'
 
+// ========== 非流式接口（普通 HTTP）==========
+
 /**
- * AI 对话
+ * AI 对话（非流式）
  * @param {Object} data - { message, mode: 'SIMPLE' | 'REACT', conversationId }
  */
 export function aiChat(data) {
@@ -9,7 +11,7 @@ export function aiChat(data) {
 }
 
 /**
- * 生成帖子
+ * 生成帖子（非流式）
  * @param {Object} data - { topic, category, style, requirements }
  */
 export function aiGeneratePost(data) {
@@ -23,6 +25,44 @@ export function aiGeneratePost(data) {
 export function aiGenerateAndPublishPost(data) {
   return http.post('/ai/post/publish', data)
 }
+
+// ========== 流式接口（SSE）==========
+
+/**
+ * AI 对话（流式 SSE）
+ * @param {Object} data - { message, mode: 'SIMPLE' | 'REACT' }
+ * @returns {Promise<Response>} 返回原始 Response，body 是 ReadableStream
+ */
+export function aiChatStream(data) {
+  return fetch('/api/ai/stream/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+    },
+    body: JSON.stringify(data)
+  })
+}
+
+/**
+ * 生成帖子（流式 SSE）
+ * @param {Object} data - { topic, category, style, requirements }
+ * @returns {Promise<Response>} 返回原始 Response，body 是 ReadableStream
+ */
+export function aiGeneratePostStream(data) {
+  return fetch('/api/ai/stream/post/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+    },
+    body: JSON.stringify(data)
+  })
+}
+
+// ========== 其他接口（预留）==========
 
 /**
  * 执行自定义流程

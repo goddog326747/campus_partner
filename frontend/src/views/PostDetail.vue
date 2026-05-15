@@ -5,7 +5,7 @@
         <el-icon><ArrowLeft /></el-icon>
       </div>
       <div class="author-info" @click="goToUser(post.userId)">
-        <img :src="post.avatar || 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="" class="avatar">
+        <img :src="post.avatar ? (post.avatar.startsWith('http') ? post.avatar : 'http://localhost:8080' + post.avatar) : 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="" class="avatar">
         <div class="author-meta">
           <span class="name">{{ post.username || post.author }}</span>
           <div class="author-tags">
@@ -47,7 +47,7 @@
       <div class="comment-list">
         <div class="comment-item" v-for="c in comments" :key="c.id">
           <div class="c-avatar" @click="goToUser(c.userId)">
-            <img :src="c.avatar || 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="">
+            <img :src="c.avatar ? (c.avatar.startsWith('http') ? c.avatar : 'http://localhost:8080' + c.avatar) : 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="">
           </div>
           <div class="c-content">
             <div class="c-header">
@@ -83,7 +83,7 @@
               <div v-if="c.showReplies" class="reply-list">
                 <div class="reply-item" v-for="r in c.replies" :key="r.id">
                   <div class="r-avatar" @click="goToUser(r.userId)">
-                    <img :src="r.avatar || 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="">
+                    <img :src="r.avatar ? (r.avatar.startsWith('http') ? r.avatar : 'http://localhost:8080' + r.avatar) : 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png'" alt="">
                   </div>
                   <div class="r-content">
                     <div class="r-header">
@@ -174,8 +174,13 @@ const fetchPost = async (id) => {
         data.images = null
       }
     }
-    // 确保images是数组
-    if (!Array.isArray(data.images)) {
+    // 确保images是数组，并拼接完整URL
+    if (Array.isArray(data.images)) {
+      data.images = data.images.map(url => {
+        if (url.startsWith('http')) return url
+        return `http://localhost:8080${url}`
+      })
+    } else {
       data.images = null
     }
     

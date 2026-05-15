@@ -42,4 +42,24 @@ public class UserContext {
     public static void remove() {
         userHolder.remove();
     }
+
+    /**
+     * 获取当前用户ID
+     *
+     * @return 用户ID，未登录返回null
+     */
+    public static Long getUserId() {
+        User user = userHolder.get();
+        return user != null ? user.getId() : null;
+    }
+
+    /**
+     * 获取当前用户名
+     *
+     * @return 用户名，未登录返回null
+     */
+    public static String getUsername() {
+        User user = userHolder.get();
+        return user != null ? user.getUsername() : null;
+    }
 }
