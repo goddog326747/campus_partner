@@ -14,6 +14,8 @@ public interface AiService {
 
     PostGenerateResponse generatePost(PostGenerateRequest request);
 
+    PostGenerateResponse agentGeneratePost(PostGenerateRequest request);
+
     PostGenerateResponse generateAndPublishPost(PostGenerateRequest request);
 
     FlowResult executeFlow(String flowName, Map<String, Object> input);

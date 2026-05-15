@@ -33,6 +33,13 @@ public class AiController {
         return Result.success(response);
     }
 
+    @PostMapping("/post/agent-generate")
+    public Result<PostGenerateResponse> agentGeneratePost(@RequestBody PostGenerateRequest request) {
+        log.info("Agent generate post request: topic={}", request.getTopic());
+        PostGenerateResponse response = aiService.agentGeneratePost(request);
+        return Result.success(response);
+    }
+
     @PostMapping("/post/publish")
     public Result<PostGenerateResponse> generateAndPublishPost(@RequestBody PostGenerateRequest request) {
         log.info("Generate and publish post request: topic={}", request.getTopic());

@@ -72,6 +72,10 @@
           <el-icon><MagicStick /></el-icon>
           <span>开始生成</span>
         </button>
+        <button class="agent-btn" @click="startAgentGenerate" :disabled="!form.topic.trim()">
+          <el-icon><MagicStick /></el-icon>
+          <span>Agent 模式</span>
+        </button>
       </div>
     </div>
 
@@ -140,7 +144,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, MagicStick, Check, Refresh, Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCategories } from '../api/posts'
-import { aiGeneratePostStream } from '../api/ai'
+import { aiGeneratePostStream, aiAgentGeneratePost } from '../api/ai'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 
 const router = useRouter()
@@ -194,7 +198,6 @@ const startGenerate = () => {
   accumulatedContent.value = ''
   result.value = null
 
-  // 使用 fetch + ReadableStream 实现流式请求
   const requestData = {
     topic: form.topic,
     category: form.category || undefined,
@@ -203,6 +206,46 @@ const startGenerate = () => {
   }
 
   streamGenerate(requestData)
+}
+
+const startAgentGenerate = async () => {
+  if (!form.topic.trim()) {
+    ElMessage.warning('请输入主题')
+    return
+  }
+
+  generating.value = true
+  generated.value = false
+  accumulatedContent.value = 'Agent 正在深度思考中，请稍候...\n\n流程：信息收集 → 内容生成 → 质量检查'
+  result.value = null
+
+  try {
+    const requestData = {
+      topic: form.topic,
+      category: form.category || undefined,
+      style: form.style || undefined,
+      requirements: form.requirements || undefined
+    }
+
+    const res = await aiAgentGeneratePost(requestData)
+
+    if (res.code === 200 && res.data) {
+      result.value = {
+        title: res.data.title || '生成的帖子',
+        content: res.data.content || '',
+        tags: res.data.tags || ''
+      }
+      generating.value = false
+      generated.value = true
+    } else {
+      ElMessage.error(res.message || 'Agent 生成失败')
+      generating.value = false
+    }
+  } catch (e) {
+    console.error('Agent 生成失败:', e)
+    ElMessage.error('Agent 生成失败，请稍后重试')
+    generating.value = false
+  }
 }
 
 const streamGenerate = async (requestData) => {
@@ -315,11 +358,17 @@ const handleStreamEvent = (eventType, data) => {
       accumulatedContent.value = data.accumulated || ''
       break
     case 'done':
-      // 流式生成完成，解析内容
       progress.value = 100
       progressText.value = '生成完成！'
-      const parsedResult = parseGeneratedContent(data.content)
-      result.value = parsedResult
+      if (data.title || data.content) {
+        result.value = {
+          title: data.title || '生成的帖子',
+          content: data.content || '',
+          tags: data.tags || ''
+        }
+      } else {
+        result.value = parseGeneratedContent(data.content || accumulatedContent.value)
+      }
       generating.value = false
       generated.value = true
       break
@@ -599,6 +648,34 @@ const useResult = () => {
 }
 
 .generate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.agent-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.agent-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(118, 75, 162, 0.4);
+}
+
+.agent-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

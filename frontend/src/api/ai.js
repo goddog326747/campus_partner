@@ -18,6 +18,10 @@ export function aiGeneratePost(data) {
   return http.post('/ai/post/generate', data)
 }
 
+export function aiAgentGeneratePost(data) {
+  return http.post('/ai/post/agent-generate', data)
+}
+
 /**
  * 生成并发布帖子
  * @param {Object} data - { topic, category, style, requirements }

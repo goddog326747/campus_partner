@@ -1,13 +1,6 @@
 package com.example.project.agent.service;
 
 import com.example.project.agent.dto.PostGenerateRequest;
-import com.example.project.agent.dto.PostContent;
-import com.example.project.agent.flow.AgentFlow;
-import com.example.project.agent.flow.FlowContext;
-import com.example.project.agent.flow.FlowEngine;
-import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
-import com.example.project.agent.flow.FlowEngine;
-import com.example.project.agent.flow.factory.AgentFlowFactory;
 import com.example.project.agent.flow.sse.SseHelper;
 import com.example.project.agent.service.impl.PostContentParser;
 import dev.langchain4j.data.message.AiMessage;
@@ -34,12 +27,6 @@ public class StreamingAiService {
 
     @Autowired
     private StreamingChatLanguageModel streamingChatModel;
-
-    @Autowired
-    private FlowEngine flowEngine;
-
-    @Autowired
-    private AgentFlowFactory flowFactory;
 
     @Async("taskExecutor")
     public void streamGeneratePost(PostGenerateRequest request, String requestId, SseEmitter emitter) {

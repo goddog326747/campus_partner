@@ -88,6 +88,32 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
+    public PostGenerateResponse agentGeneratePost(PostGenerateRequest request) {
+        log.info("Agent generating post: topic={}, category={}", request.getTopic(), request.getCategory());
+
+        Map<String, Object> input = new HashMap<>();
+        input.put("topic", request.getTopic());
+        input.put("category", request.getCategory());
+        input.put("style", request.getStyle());
+        input.put("requirements", request.getRequirements());
+        input.put("userId", UserContext.getUserId());
+
+        FlowResult result = flowDispatchService.dispatch("post-agent", input);
+
+        PostContent content = PostContentParser.parse(result.getOutputAs());
+
+        return PostGenerateResponse.builder()
+                .title(content.getTitle())
+                .content(content.getContent())
+                .category(request.getCategory())
+                .executionId(result.getExecutionId())
+                .executionTime(result.getExecutionTimeMs())
+                .nodesExecuted(result.getExecutedNodeCount())
+                .published(false)
+                .build();
+    }
+
+    @Override
     public PostGenerateResponse generateAndPublishPost(PostGenerateRequest request) {
         PostGenerateResponse response = generatePost(request);
 

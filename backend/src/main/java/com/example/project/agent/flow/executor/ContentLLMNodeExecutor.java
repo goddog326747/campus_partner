@@ -22,16 +22,16 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class LLMNodeExecutor implements NodeExecutor {
+public class ContentLLMNodeExecutor implements NodeExecutor {
 
-    private static final Logger logger = LoggerFactory.getLogger(LLMNodeExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(ContentLLMNodeExecutor.class);
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\{\\{([\\w.]+)\\}\\}");
     private static final int MAX_TOOL_ITERATIONS = 5;
 
     private final ChatLanguageModel chatModel;
     private final ToolNodeExecutor toolExecutor;
 
-    public LLMNodeExecutor(ChatLanguageModel chatModel, ToolNodeExecutor toolExecutor) {
+    public ContentLLMNodeExecutor(ChatLanguageModel chatModel, ToolNodeExecutor toolExecutor) {
         this.chatModel = chatModel;
         this.toolExecutor = toolExecutor;
     }
@@ -47,15 +47,13 @@ public class LLMNodeExecutor implements NodeExecutor {
             long startTime = System.currentTimeMillis();
 
             String systemPrompt = node.getConfig("systemPrompt",
-                    "你是一个专业的 AI 助手，请根据用户输入提供有帮助的回答。");
+                    "你是一个专业的内容创作助手，擅长生成高质量、有吸引力的内容。");
             String userPromptTemplate = node.getConfig("userPromptTemplate", "{{input}}");
             String userPrompt = resolveTemplate(userPromptTemplate, context);
 
             boolean useTools = node.getConfig("useTools", false);
 
-            logger.debug("LLM Node executing: node={}, useTools={}, prompt={}",
-                    node.getName(), useTools,
-                    userPrompt.substring(0, Math.min(100, userPrompt.length())));
+            logger.debug("Content LLM Node executing: node={}, useTools={}", node.getName(), useTools);
 
             String response;
             boolean hasToolCall = false;
@@ -69,8 +67,6 @@ public class LLMNodeExecutor implements NodeExecutor {
 
             long endTime = System.currentTimeMillis();
 
-            logger.debug("LLM Node completed: node={}, time={}ms", node.getName(), endTime - startTime);
-
             return FlowNodeExecutionResult.builder()
                     .nodeId(node.getNodeId())
                     .nodeName(node.getName())
@@ -83,7 +79,7 @@ public class LLMNodeExecutor implements NodeExecutor {
                     .build();
 
         } catch (Exception e) {
-            logger.error("LLM Node execution failed: node={}, error={}", node.getName(), e.getMessage(), e);
+            logger.error("Content LLM Node execution failed: node={}, error={}", node.getName(), e.getMessage(), e);
             return FlowNodeExecutionResult.builder()
                     .nodeId(node.getNodeId())
                     .nodeName(node.getName())
@@ -124,10 +120,10 @@ public class LLMNodeExecutor implements NodeExecutor {
     }
 
     private String callModel(String systemPrompt, String userPrompt) {
-        SystemMessage systemMessage = SystemMessage.from(systemPrompt);
-        UserMessage userMessage = UserMessage.from(userPrompt);
-
-        Response<AiMessage> response = chatModel.generate(Arrays.asList(systemMessage, userMessage));
+        Response<AiMessage> response = chatModel.generate(Arrays.asList(
+                SystemMessage.from(systemPrompt),
+                UserMessage.from(userPrompt)
+        ));
         return response.content().text();
     }
 
@@ -137,7 +133,6 @@ public class LLMNodeExecutor implements NodeExecutor {
         }
 
         Matcher matcher = TEMPLATE_PATTERN.matcher(template);
-
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String placeholder = matcher.group(1);
@@ -149,7 +144,6 @@ public class LLMNodeExecutor implements NodeExecutor {
             matcher.appendReplacement(sb, replacement);
         }
         matcher.appendTail(sb);
-
         return sb.toString();
     }
 
@@ -157,18 +151,14 @@ public class LLMNodeExecutor implements NodeExecutor {
         if (path == null || path.isEmpty()) {
             return null;
         }
-
         if ("lastOutput".equals(path)) {
             return context.getLastOutput();
         }
-
         String[] parts = path.split("\\.");
         if (parts.length < 2) {
             return null;
         }
-
         String namespace = parts[0];
-
         return switch (namespace) {
             case "input" -> context.getInput(parts[1]);
             case "variable" -> context.getVariable(parts[1]);

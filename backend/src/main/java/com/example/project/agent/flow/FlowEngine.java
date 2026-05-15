@@ -1,123 +1,153 @@
 package com.example.project.agent.flow;
 
 import com.example.project.agent.flow.dto.FlowResult;
-import com.example.project.agent.flow.enums.FlowMode;
+import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
 import com.example.project.agent.flow.enums.FlowStatus;
-import com.example.project.agent.flow.strategy.ExecutionStrategy;
+import com.example.project.agent.flow.enums.NodeType;
+import com.example.project.agent.flow.executor.NodeExecutor;
+import com.example.project.agent.flow.executor.NodeExecutorRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.*;
 
-/**
- * 流程执行引擎，负责驱动 AgentFlow 的执行。
- * <p>
- * <b>设计原则</b>：FlowEngine 是<b>无状态服务</b>（Spring 单例），可以复用。
- * 每次执行时传入 {@link AgentFlow} 和 {@link FlowContext}，避免重复创建引擎实例。
- * <p>
- * <b>策略注入</b>：通过 Spring 注入所有 ExecutionStrategy，按 FlowMode 自动映射。
- * <p>
- * 引擎支持超时控制、异常处理、线程隔离以及多种执行模式的自动适配。
- *
- * @author example
- * @since 1.0.0
- */
 @Component
 public class FlowEngine {
 
     private static final Logger logger = LoggerFactory.getLogger(FlowEngine.class);
     private static final long DEFAULT_TIMEOUT_MS = 120_000L;
+    private static final int MAX_TOTAL_ITERATIONS = 50;
 
-    private final Map<String, ExecutionStrategy> strategies;
+    private final NodeExecutorRegistry executorRegistry;
 
-    /**
-     * 构造方法，通过 Spring 注入所有策略。
-     * <p>
-     * Spring 会自动收集所有 {@link ExecutionStrategy} 的实现类，
-     * 按 Bean 名称映射到 Map 中。
-     *
-     * @param strategies 策略映射表，key 为 Bean 名称（如 "planningStrategy"、"reactStrategy"）
-     */
-    public FlowEngine(Map<String, ExecutionStrategy> strategies) {
-        this.strategies = strategies;
-        logger.info("Loaded {} execution strategies: {}", strategies.size(), strategies.keySet());
+    public FlowEngine(NodeExecutorRegistry executorRegistry) {
+        this.executorRegistry = executorRegistry;
     }
 
-    /**
-     * 执行流程（默认超时）。
-     * <p>
-     * 在独立线程中执行策略，支持超时、中断和异常处理。
-     *
-     * @param flow    流程定义（每次请求不同）
-     * @param context 执行上下文（每次请求不同）
-     * @return 流程执行结果
-     */
     public FlowResult execute(AgentFlow flow, FlowContext context) {
         return execute(flow, context, DEFAULT_TIMEOUT_MS);
     }
 
-    /**
-     * 执行流程（指定超时）。
-     * <p>
-     * 在独立线程中执行策略，支持超时、中断和异常处理。
-     *
-     * @param flow      流程定义（每次请求不同）
-     * @param context   执行上下文（每次请求不同）
-     * @param timeoutMs 超时时间（毫秒）
-     * @return 流程执行结果
-     */
     public FlowResult execute(AgentFlow flow, FlowContext context, long timeoutMs) {
-        logger.info("Starting flow execution: flowId={}, mode={}, executionId={}",
-                flow.getFlowId(), flow.getMode(), context.getExecutionId());
+        logger.info("Starting flow execution: flowId={}, executionId={}",
+                flow.getFlowId(), context.getExecutionId());
 
         FlowValidator.validate(flow);
-        ExecutionStrategy strategy = resolveStrategy(flow.getMode());
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<FlowResult> future = executor.submit(() -> {
-                try {
-                    return strategy.execute(flow, context);
-                } catch (Exception e) {
-                    logger.error("Flow execution failed: flowId={}, error={}", flow.getFlowId(), e.getMessage(), e);
-                    context.complete(FlowStatus.FAILED);
-                    return FlowResult.failure(flow.getFlowId(), context.getExecutionId(), e.getMessage(), context);
-                }
-            });
-
+            Future<FlowResult> future = executor.submit(() -> doExecute(flow, context));
             return awaitResult(future, flow, context, timeoutMs);
         } finally {
             executor.shutdownNow();
         }
     }
 
-    /**
-     * 根据执行模式解析对应的策略。
-     *
-     * @param mode 执行模式
-     * @return 对应的执行策略
-     * @throws IllegalStateException 找不到对应策略时抛出
-     */
-    private ExecutionStrategy resolveStrategy(FlowMode mode) {
-        String strategyName = switch (mode) {
-            case PLANNING -> "planningStrategy";
-            case REACT -> "reactStrategy";
-            case HYBRID -> "hybridStrategy";
-        };
+    private FlowResult doExecute(AgentFlow flow, FlowContext context) {
+        try {
+            FlowNode currentNode = findStartNode(flow);
+            int totalIterations = 0;
+            Object lastContentOutput = null;
 
-        ExecutionStrategy strategy = strategies.get(strategyName);
-        if (strategy == null) {
-            throw new IllegalStateException("No strategy found for mode: " + mode +
-                    ", available strategies: " + strategies.keySet());
+            while (currentNode != null && totalIterations < MAX_TOTAL_ITERATIONS) {
+                totalIterations++;
+
+                NodeExecutor executor = executorRegistry.resolveExecutor(currentNode);
+                FlowNodeExecutionResult result = executor.execute(currentNode, context);
+                context.recordNodeResult(result);
+
+                logger.debug("Node executed: nodeId={}, success={}, time={}ms",
+                        currentNode.getNodeId(), result.isSuccess(), result.getExecutionTimeMs());
+
+                if (!result.isSuccess()) {
+                    context.complete(FlowStatus.FAILED);
+                    return FlowResult.failure(flow.getFlowId(), context.getExecutionId(),
+                            result.getError(), context);
+                }
+
+                if (currentNode.getType() == NodeType.LLM) {
+                    lastContentOutput = result.getOutput();
+                }
+
+                if (currentNode.getType() == NodeType.END) {
+                    break;
+                }
+
+                currentNode = resolveNextNode(flow, currentNode, context, result);
+            }
+
+            if (totalIterations >= MAX_TOTAL_ITERATIONS) {
+                logger.warn("Flow reached max iterations: flowId={}, max={}", flow.getFlowId(), MAX_TOTAL_ITERATIONS);
+            }
+
+            Object finalOutput = lastContentOutput != null ? lastContentOutput : context.getLastOutput();
+            context.complete(FlowStatus.COMPLETED);
+            return FlowResult.success(flow.getFlowId(), context.getExecutionId(),
+                    finalOutput, context);
+
+        } catch (Exception e) {
+            logger.error("Flow execution failed: flowId={}, error={}", flow.getFlowId(), e.getMessage(), e);
+            context.complete(FlowStatus.FAILED);
+            return FlowResult.failure(flow.getFlowId(), context.getExecutionId(), e.getMessage(), context);
         }
-        return strategy;
     }
 
-    /**
-     * 等待异步执行结果，处理超时、中断和执行异常。
-     */
+    private FlowNode resolveNextNode(AgentFlow flow, FlowNode currentNode,
+                                      FlowContext context, FlowNodeExecutionResult result) {
+        if (currentNode.getType() == NodeType.LOOP) {
+            return resolveLoopNext(flow, currentNode, context, result);
+        }
+
+        List<FlowEdge> outgoingEdges = flow.getOutgoingEdges(currentNode.getNodeId());
+        for (FlowEdge edge : outgoingEdges) {
+            if (edge.canTraverse(context)) {
+                return flow.getNode(edge.getToNodeId());
+            }
+        }
+
+        return null;
+    }
+
+    private FlowNode resolveLoopNext(AgentFlow flow, FlowNode loopNode,
+                                      FlowContext context, FlowNodeExecutionResult result) {
+        String loopCountKey = "_loopCount_" + loopNode.getNodeId();
+        int iteration = context.getVariable(loopCountKey, 0);
+        int maxIterations = loopNode.getConfig("maxIterations", 3);
+
+        Boolean loopContinue = result.getMetadata() != null
+                ? (Boolean) result.getMetadata().get("loopContinue")
+                : null;
+
+        if (Boolean.TRUE.equals(loopContinue) && iteration < maxIterations) {
+            context.setVariable(loopCountKey, iteration + 1);
+            String loopTarget = loopNode.getConfig("loopTarget");
+            logger.debug("Loop continuing: node={}, iteration={}/{}", loopNode.getNodeId(), iteration + 1, maxIterations);
+            return flow.getNode(loopTarget);
+        }
+
+        context.setVariable(loopCountKey, 0);
+        logger.debug("Loop ended: node={}", loopNode.getNodeId());
+
+        List<FlowEdge> outgoingEdges = flow.getOutgoingEdges(loopNode.getNodeId());
+        for (FlowEdge edge : outgoingEdges) {
+            if (edge.canTraverse(context)) {
+                return flow.getNode(edge.getToNodeId());
+            }
+        }
+
+        return null;
+    }
+
+    private FlowNode findStartNode(AgentFlow flow) {
+        List<FlowNode> startNodes = flow.getStartNodes();
+        if (startNodes.isEmpty()) {
+            throw new IllegalStateException("No start node found in flow: " + flow.getFlowId());
+        }
+        return startNodes.get(0);
+    }
+
     private FlowResult awaitResult(Future<FlowResult> future, AgentFlow flow,
                                     FlowContext context, long timeoutMs) {
         try {
