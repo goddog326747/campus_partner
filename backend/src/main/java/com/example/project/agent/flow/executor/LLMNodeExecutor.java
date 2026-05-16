@@ -2,6 +2,7 @@ package com.example.project.agent.flow.executor;
 
 import com.example.project.agent.flow.FlowContext;
 import com.example.project.agent.flow.FlowNode;
+import com.example.project.agent.flow.advisor.FlowAdvisor;
 import com.example.project.agent.flow.dto.FlowNodeExecutionResult;
 import com.example.project.agent.flow.enums.NodeType;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,12 +30,17 @@ public class LLMNodeExecutor implements NodeExecutor {
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\{\\{([\\w.]+)\\}\\}");
     private static final int MAX_TOOL_ITERATIONS = 5;
 
-    private final ChatLanguageModel chatModel;
-    private final ToolNodeExecutor toolExecutor;
+    protected final ChatLanguageModel chatModel;
+    protected final ToolNodeExecutor toolExecutor;
+    protected final List<FlowAdvisor> advisors;
 
-    public LLMNodeExecutor(ChatLanguageModel chatModel, ToolNodeExecutor toolExecutor) {
+    public LLMNodeExecutor(ChatLanguageModel chatModel, ToolNodeExecutor toolExecutor,
+                           List<FlowAdvisor> advisors) {
         this.chatModel = chatModel;
         this.toolExecutor = toolExecutor;
+        this.advisors = advisors != null ? advisors.stream()
+                .sorted(Comparator.comparingInt(FlowAdvisor::getOrder))
+                .toList() : List.of();
     }
 
     @Override
@@ -64,7 +71,7 @@ public class LLMNodeExecutor implements NodeExecutor {
                 response = executeWithTools(systemPrompt, userPrompt, context);
                 hasToolCall = true;
             } else {
-                response = callModel(systemPrompt, userPrompt);
+                response = callModel(systemPrompt, userPrompt, context);
             }
 
             long endTime = System.currentTimeMillis();
@@ -98,6 +105,8 @@ public class LLMNodeExecutor implements NodeExecutor {
         messages.add(SystemMessage.from(systemPrompt));
         messages.add(UserMessage.from(userPrompt));
 
+        messages = applyAdvisorsBefore(messages, context);
+
         List<ToolSpecification> toolSpecs = toolExecutor.buildToolSpecifications();
 
         int iteration = 0;
@@ -109,6 +118,7 @@ public class LLMNodeExecutor implements NodeExecutor {
             messages.add(aiMessage);
 
             if (aiMessage.toolExecutionRequests() == null || aiMessage.toolExecutionRequests().isEmpty()) {
+                applyAdvisorsAfter(messages, aiMessage, context);
                 return aiMessage.text();
             }
 
@@ -123,12 +133,33 @@ public class LLMNodeExecutor implements NodeExecutor {
         return lastMessage instanceof AiMessage ? ((AiMessage) lastMessage).text() : lastMessage.toString();
     }
 
-    private String callModel(String systemPrompt, String userPrompt) {
-        SystemMessage systemMessage = SystemMessage.from(systemPrompt);
-        UserMessage userMessage = UserMessage.from(userPrompt);
+    private String callModel(String systemPrompt, String userPrompt, FlowContext context) {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(SystemMessage.from(systemPrompt));
+        messages.add(UserMessage.from(userPrompt));
 
-        Response<AiMessage> response = chatModel.generate(Arrays.asList(systemMessage, userMessage));
-        return response.content().text();
+        messages = applyAdvisorsBefore(messages, context);
+
+        Response<AiMessage> response = chatModel.generate(messages);
+        AiMessage aiMessage = response.content();
+
+        applyAdvisorsAfter(messages, aiMessage, context);
+
+        return aiMessage.text();
+    }
+
+    protected List<ChatMessage> applyAdvisorsBefore(List<ChatMessage> messages, FlowContext context) {
+        List<ChatMessage> result = messages;
+        for (FlowAdvisor advisor : advisors) {
+            result = advisor.before(result, context);
+        }
+        return result;
+    }
+
+    protected void applyAdvisorsAfter(List<ChatMessage> messages, AiMessage response, FlowContext context) {
+        for (FlowAdvisor advisor : advisors) {
+            advisor.after(messages, response, context);
+        }
     }
 
     private String resolveTemplate(String template, FlowContext context) {

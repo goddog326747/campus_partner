@@ -1,5 +1,8 @@
 package com.example.project.config;
 
+import com.example.project.agent.flow.advisor.ChatMemoryAdvisor;
+import com.example.project.agent.flow.advisor.FlowAdvisor;
+import com.example.project.agent.flow.advisor.InMemoryChatMemoryStore;
 import com.example.project.agent.flow.executor.ContentLLMNodeExecutor;
 import com.example.project.agent.flow.executor.LLMNodeExecutor;
 import com.example.project.agent.flow.executor.LoopNodeExecutor;
@@ -8,12 +11,14 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
+import java.util.List;
 
 @Configuration
 public class LangChain4jConfig {
@@ -54,7 +59,7 @@ public class LangChain4jConfig {
                 .baseUrl(extractBaseUrl(apiUrl))
                 .modelName(proModelName)
                 .timeout(Duration.ofSeconds(120))
-                .temperature(0.8)
+                .temperature(0.5)
                 .maxTokens(4000)
                 .build();
     }
@@ -86,15 +91,32 @@ public class LangChain4jConfig {
     }
 
     @Bean
+    public ChatMemoryStore chatMemoryStore() {
+        return new InMemoryChatMemoryStore();
+    }
+
+    @Bean
+    public ChatMemoryAdvisor chatMemoryAdvisor(ChatMemoryStore chatMemoryStore) {
+        return new ChatMemoryAdvisor(chatMemoryStore, 20);
+    }
+
+    @Bean
+    public List<FlowAdvisor> flowAdvisors(ChatMemoryAdvisor chatMemoryAdvisor) {
+        return List.of(chatMemoryAdvisor);
+    }
+
+    @Bean
     public LLMNodeExecutor llmNodeExecutor(@Qualifier("flashModel") ChatLanguageModel chatModel,
-                                            ToolNodeExecutor toolExecutor) {
-        return new LLMNodeExecutor(chatModel, toolExecutor);
+                                            ToolNodeExecutor toolExecutor,
+                                            List<FlowAdvisor> advisors) {
+        return new LLMNodeExecutor(chatModel, toolExecutor, advisors);
     }
 
     @Bean
     public ContentLLMNodeExecutor contentLLMNodeExecutor(@Qualifier("proModel") ChatLanguageModel contentModel,
-                                                          ToolNodeExecutor toolExecutor) {
-        return new ContentLLMNodeExecutor(contentModel, toolExecutor);
+                                                          ToolNodeExecutor toolExecutor,
+                                                          List<FlowAdvisor> advisors) {
+        return new ContentLLMNodeExecutor(contentModel, toolExecutor, advisors);
     }
 
     @Bean

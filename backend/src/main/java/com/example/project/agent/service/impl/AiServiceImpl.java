@@ -71,10 +71,12 @@ public class AiServiceImpl implements AiService {
         input.put("style", request.getStyle());
         input.put("requirements", request.getRequirements());
         input.put("userId", UserContext.getUserId());
+        input.put("conversationId", request.getConversationId());
 
         FlowResult result = flowDispatchService.dispatch("post-generation", input);
 
-        PostContent content = PostContentParser.parse(result.getOutputAs());
+        String outputStr = result.getOutputAs() != null ? result.getOutputAs().toString() : null;
+        PostContent content = PostContentParser.parse(outputStr);
 
         return PostGenerateResponse.builder()
                 .title(content.getTitle())
@@ -89,7 +91,8 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public PostGenerateResponse agentGeneratePost(PostGenerateRequest request) {
-        log.info("Agent generating post: topic={}, category={}", request.getTopic(), request.getCategory());
+        log.info("Agent generating post: topic={}, category={}, conversationId={}",
+                request.getTopic(), request.getCategory(), request.getConversationId());
 
         Map<String, Object> input = new HashMap<>();
         input.put("topic", request.getTopic());
@@ -97,10 +100,17 @@ public class AiServiceImpl implements AiService {
         input.put("style", request.getStyle());
         input.put("requirements", request.getRequirements());
         input.put("userId", UserContext.getUserId());
+        input.put("conversationId", request.getConversationId());
 
         FlowResult result = flowDispatchService.dispatch("post-agent", input);
 
-        PostContent content = PostContentParser.parse(result.getOutputAs());
+        String outputStr = result.getOutputAs() != null ? result.getOutputAs().toString() : null;
+        log.info("Agent result: success={}, outputLength={}, output={}",
+                result.isSuccess(),
+                outputStr != null ? outputStr.length() : 0,
+                outputStr != null ? outputStr.substring(0, Math.min(200, outputStr.length())) : "null");
+
+        PostContent content = PostContentParser.parse(outputStr);
 
         return PostGenerateResponse.builder()
                 .title(content.getTitle())

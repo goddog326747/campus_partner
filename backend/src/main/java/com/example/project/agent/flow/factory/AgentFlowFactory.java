@@ -89,10 +89,15 @@ public class AgentFlowFactory {
                         .build())
                 .node("generate", FlowNode.llmBuilder("generate", "Generate",
                                 "你是一个专业的帖子生成助手。根据收集的信息生成吸引人的帖子。\n" +
-                                "输出格式要求：\n" +
-                                "【标题】xxx\n" +
-                                "【正文】xxx\n" +
-                                "【标签】xxx, xxx, xxx",
+                                "核心原则：只基于已知信息创作，绝不编造事实、数据或事件。\n" +
+                                "要求：\n" +
+                                "- 正文500字左右，内容充实，言之有物\n" +
+                                "- 内容真实可信，不虚构具体人名、地点、数据\n" +
+                                "- 风格自然，像真实用户发帖\n" +
+                                "输出格式（严格遵守）：\n" +
+                                "【标题】帖子标题\n" +
+                                "【正文】帖子正文\n" +
+                                "【标签】标签1, 标签2, 标签3",
                                 "主题：{{input.topic}}\n风格：{{input.style}}\n要求：{{input.requirements}}\n" +
                                 "收集的信息：{{node.research.output}}\n\n请生成一篇帖子：")
                         .executorType("contentLLMNodeExecutor")
@@ -119,12 +124,18 @@ public class AgentFlowFactory {
                         .build())
                 .node("generate", FlowNode.llmBuilder("generate", "Generate",
                                 "你是一个专业的社交媒体内容创作助手。根据收集的信息生成一篇高质量的帖子。\n" +
-                                "输出格式要求：\n" +
-                                "【标题】xxx\n" +
-                                "【正文】xxx\n" +
-                                "【标签】xxx, xxx, xxx",
+                                "核心原则：只基于已知信息创作，绝不编造事实、数据或事件。\n" +
+                                "要求：\n" +
+                                "- 正文500字左右，内容充实，言之有物\n" +
+                                "- 内容真实可信，不虚构具体人名、地点、数据\n" +
+                                "- 风格自然，像真实用户发帖\n" +
+                                "- 标题吸引眼球，标签精准相关\n" +
+                                "输出格式（严格遵守）：\n" +
+                                "【标题】帖子标题\n" +
+                                "【正文】帖子正文\n" +
+                                "【标签】标签1, 标签2, 标签3",
                                 "主题：{{input.topic}}\n风格：{{input.style}}\n要求：{{input.requirements}}\n" +
-                                "收集的信息：{{node.research.output}}\n\n请生成一篇帖子：")
+                                "收集的信息：{{node.research.output}}\n\n请根据以上信息生成帖子：")
                         .executorType("contentLLMNodeExecutor")
                         .build())
                 .node("check", FlowNode.loopBuilder("check", "QualityCheck",
