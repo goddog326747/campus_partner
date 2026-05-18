@@ -151,4 +151,45 @@
         </where>
     </select>
 
+    <resultMap id="PostWithUserResultMap" type="com.example.project.entity.Post" extends="BaseResultMap">
+        <result column="username" property="username"/>
+        <result column="avatar" property="avatar"/>
+        <result column="user_location" property="userLocation"/>
+        <result column="user_school" property="userSchool"/>
+        <result column="user_verified" property="userVerified"/>
+        <result column="user_gender" property="userGender"/>
+    </resultMap>
+
+    <select id="selectPostsWithUser" resultMap="PostWithUserResultMap">
+        SELECT p.id, p.title, p.content, p.category, p.user_id, p.images, p.destination, 
+               p.create_time, p.update_time,
+               u.username, u.avatar, u.location as user_location, u.school as user_school,
+               u.verified as user_verified, u.gender as user_gender
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        <where>
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countPosts" resultType="long">
+        SELECT COUNT(*)
+        FROM post
+        <where>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
 </mapper>

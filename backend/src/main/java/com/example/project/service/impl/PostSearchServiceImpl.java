@@ -49,9 +49,27 @@ public class PostSearchServiceImpl implements PostSearchService {
         log.info("Searching posts by keyword: {}, page: {}, size: {}", keyword, pageNum, pageSize);
         try {
             Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
-            Page<PostDocument> result = postSearchRepository.searchByKeyword(keyword, pageable);
-            log.info("Found {} posts for keyword: {}", result.getTotalElements(), keyword);
-            return convertToPageResult(result, pageNum, pageSize);
+
+            BoolQueryBuilder keywordQuery = QueryBuilders.boolQuery();
+            keywordQuery.should(QueryBuilders.matchPhraseQuery("title", keyword).boost(3.0f));
+            keywordQuery.should(QueryBuilders.matchPhraseQuery("content", keyword));
+            keywordQuery.should(QueryBuilders.matchPhraseQuery("destination", keyword).boost(2.0f));
+            keywordQuery.should(QueryBuilders.wildcardQuery("title.keyword", "*" + keyword + "*").boost(5.0f));
+
+            NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
+                    .withQuery(keywordQuery)
+                    .withPageable(pageable)
+                    .withSort(SortBuilders.fieldSort("createTime.keyword").order(SortOrder.DESC))
+                    .build();
+
+            SearchHits<PostDocument> searchHits = elasticsearchRestTemplate.search(searchQuery, PostDocument.class);
+            List<PostDocument> documents = searchHits.getSearchHits().stream()
+                    .map(hit -> hit.getContent())
+                    .collect(Collectors.toList());
+            long totalHits = searchHits.getTotalHits();
+
+            log.info("Found {} posts for keyword: {}", totalHits, keyword);
+            return convertDocumentsToPageResult(documents, pageable, totalHits, pageNum, pageSize);
         } catch (Exception e) {
             log.error("Error searching posts by keyword: {}", keyword, e);
             throw e;
@@ -65,24 +83,24 @@ public class PostSearchServiceImpl implements PostSearchService {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
 
             if (StringUtils.hasText(request.getKeyword())) {
-                boolQuery.must(QueryBuilders.multiMatchQuery(request.getKeyword())
-                        .field("title", 3.0f)
-                        .field("content")
-                        .field("destination", 2.0f)
-                        .type("best_fields")
-                        .fuzziness("AUTO"));
+                BoolQueryBuilder keywordQuery = QueryBuilders.boolQuery();
+                keywordQuery.should(QueryBuilders.matchPhraseQuery("title", request.getKeyword()).boost(3.0f));
+                keywordQuery.should(QueryBuilders.matchPhraseQuery("content", request.getKeyword()));
+                keywordQuery.should(QueryBuilders.matchPhraseQuery("destination", request.getKeyword()).boost(2.0f));
+                keywordQuery.should(QueryBuilders.wildcardQuery("title.keyword", "*" + request.getKeyword() + "*").boost(5.0f));
+                boolQuery.must(keywordQuery);
             }
 
             if (StringUtils.hasText(request.getCategory())) {
-                boolQuery.filter(QueryBuilders.termQuery("category", request.getCategory()));
+                boolQuery.filter(QueryBuilders.termQuery("category.keyword", request.getCategory()));
             }
 
             if (StringUtils.hasText(request.getLocation())) {
-                boolQuery.filter(QueryBuilders.termQuery("userLocation", request.getLocation()));
+                boolQuery.filter(QueryBuilders.termQuery("userLocation.keyword", request.getLocation()));
             }
 
             if (StringUtils.hasText(request.getSchool())) {
-                boolQuery.filter(QueryBuilders.termQuery("userSchool", request.getSchool()));
+                boolQuery.filter(QueryBuilders.termQuery("userSchool.keyword", request.getSchool()));
             }
 
             if (request.getVerified() != null) {
@@ -100,7 +118,9 @@ public class PostSearchServiceImpl implements PostSearchService {
             SortOrder sortOrder = "asc".equalsIgnoreCase(request.getSortOrder()) ? SortOrder.ASC : SortOrder.DESC;
             String sortField = request.getSortField();
             if (!StringUtils.hasText(sortField)) {
-                sortField = "createTime";
+                sortField = "createTime.keyword";
+            } else if ("createTime".equals(sortField)) {
+                sortField = "createTime.keyword";
             }
 
             NativeSearchQueryBuilder queryBuilder = new NativeSearchQueryBuilder()

@@ -163,35 +163,10 @@ const fetchList = async () => {
 
   const hasFilters = filters.value.location || filters.value.school || filters.value.verified || filters.value.sameGender
   const hasSearch = searchQuery.value && searchQuery.value.trim().length > 0
+  const hasCategory = activeCategory.value && activeCategory.value !== ''
 
-  // 有搜索关键词时，走 Elasticsearch 搜索接口
-  if (hasSearch) {
-    const params = {
-      keyword: searchQuery.value,
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    }
-    try {
-      const res = await searchPostsByKeyword(params)
-      if (res.code === 200) {
-        posts.value = res.data?.records || []
-        total.value = res.data?.total || 0
-      } else {
-        posts.value = []
-        total.value = 0
-      }
-    } catch (e) {
-      posts.value = []
-      total.value = 0
-      console.error(e)
-    } finally {
-      loading.value = false
-    }
-    return
-  }
-
-  // 有高级筛选且已登录时，走 ES 高级搜索
-  if (hasFilters && isLoggedIn.value) {
+  // 有搜索关键词、或有筛选条件、或有分类时，走 ES 高级搜索
+  if (hasSearch || hasFilters || hasCategory) {
     const data = {
       category: activeCategory.value,
       keyword: searchQuery.value,
@@ -199,17 +174,20 @@ const fetchList = async () => {
       pageSize: pageSize.value
     }
 
-    if (filters.value.location && currentUser.value?.location) {
-      data.location = currentUser.value.location
-    }
-    if (filters.value.school && currentUser.value?.school) {
-      data.school = currentUser.value.school
-    }
-    if (filters.value.verified) {
-      data.verified = true
-    }
-    if (filters.value.sameGender && currentUser.value?.gender) {
-      data.gender = currentUser.value.gender
+    // 添加筛选条件（需要登录）
+    if (isLoggedIn.value) {
+      if (filters.value.location && currentUser.value?.location) {
+        data.location = currentUser.value.location
+      }
+      if (filters.value.school && currentUser.value?.school) {
+        data.school = currentUser.value.school
+      }
+      if (filters.value.verified) {
+        data.verified = true
+      }
+      if (filters.value.sameGender && currentUser.value?.gender) {
+        data.gender = currentUser.value.gender
+      }
     }
 
     try {
@@ -229,7 +207,7 @@ const fetchList = async () => {
       loading.value = false
     }
   } else {
-    // 无搜索条件时，走 MySQL 基础查询
+    // 无任何条件时，走 MySQL 基础查询
     const params = {
       category: activeCategory.value,
       keyword: searchQuery.value,

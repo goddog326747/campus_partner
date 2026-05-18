@@ -22,6 +22,7 @@ import com.example.project.common.Result;
 import com.example.project.dto.PostQueryRequest;
 import com.example.project.entity.Post;
 import com.example.project.service.PostService;
+import com.example.project.service.PostSyncService;
 
 /**
  * 帖子控制器
@@ -40,6 +41,9 @@ public class PostController {
 
     @Autowired
     private PostService postService;
+
+    @Autowired
+    private PostSyncService postSyncService;
 
     /**
      * 获取所有帖子分类
@@ -168,7 +172,43 @@ public class PostController {
         postService.deletePost(id);
         return Result.success("删除成功");
     }
-    
+
+    /**
+     * 全量同步所有帖子到 Elasticsearch
+     *
+     * @return 操作结果
+     */
+    @PostMapping("/sync/all")
+    public Result<String> syncAllPostsToEs() {
+        logger.info("Starting full sync of all posts to Elasticsearch");
+        try {
+            postSyncService.syncAllPosts();
+            long count = postSyncService.getEsPostCount();
+            logger.info("Successfully synced all posts to ES, current count: {}", count);
+            return Result.success("同步完成，ES中共有 " + count + " 条帖子");
+        } catch (Exception e) {
+            logger.error("Failed to sync posts to ES", e);
+            return Result.error(500, "同步失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取ES中的帖子数量
+     *
+     * @return 帖子数量
+     */
+    @GetMapping("/sync/count")
+    public Result<Long> getEsPostCount() {
+        logger.info("Getting ES post count");
+        try {
+            long count = postSyncService.getEsPostCount();
+            return Result.success(count);
+        } catch (Exception e) {
+            logger.error("Failed to get ES post count", e);
+            return Result.error(500, "获取失败: " + e.getMessage());
+        }
+    }
+
     /**
      * 将字符串列表转换为JSON数组字符串
      *

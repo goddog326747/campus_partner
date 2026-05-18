@@ -83,4 +83,12 @@ public interface PostMapper extends BaseMapper<Post> {
                                       @Param("school") String school,
                                       @Param("verified") Integer verified,
                                       @Param("gender") Integer gender);
+
+    List<Post> selectPostsWithUser(@Param("category") String category,
+                                    @Param("keyword") String keyword,
+                                    @Param("offset") int offset,
+                                    @Param("pageSize") int pageSize);
+
+    long countPosts(@Param("category") String category,
+                    @Param("keyword") String keyword);
 }

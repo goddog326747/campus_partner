@@ -91,8 +91,8 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public PostGenerateResponse agentGeneratePost(PostGenerateRequest request) {
-        log.info("Agent generating post: topic={}, category={}, conversationId={}",
-                request.getTopic(), request.getCategory(), request.getConversationId());
+        log.info("Agent generating post: topic={}, category={}, mode={}, conversationId={}",
+                request.getTopic(), request.getCategory(), request.getMode(), request.getConversationId());
 
         Map<String, Object> input = new HashMap<>();
         input.put("topic", request.getTopic());
@@ -102,7 +102,8 @@ public class AiServiceImpl implements AiService {
         input.put("userId", UserContext.getUserId());
         input.put("conversationId", request.getConversationId());
 
-        FlowResult result = flowDispatchService.dispatch("post-agent", input);
+        String flowName = "REACT".equalsIgnoreCase(request.getMode()) ? "post-agent" : "post-generation";
+        FlowResult result = flowDispatchService.dispatch(flowName, input);
 
         String outputStr = result.getOutputAs() != null ? result.getOutputAs().toString() : null;
         log.info("Agent result: success={}, outputLength={}, output={}",

@@ -11,6 +11,7 @@ import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -26,6 +27,7 @@ public class StreamingAiService {
     private static final Logger logger = LoggerFactory.getLogger(StreamingAiService.class);
 
     @Autowired
+    @Qualifier("flashStreamingModel")
     private StreamingChatLanguageModel streamingChatModel;
 
     @Async("taskExecutor")

@@ -43,7 +43,7 @@ logging:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 生产环境关闭SQL日志
 
 aliyun:
   ai:

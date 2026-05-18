@@ -58,8 +58,7 @@ public interface PostSearchRepository extends ElasticsearchRepository<PostDocume
             "  \"multi_match\": {" +
             "    \"query\": \"?0\"," +
             "    \"fields\": [\"title^3\", \"content\", \"destination^2\"]," +
-            "    \"type\": \"best_fields\"," +
-            "    \"fuzziness\": \"AUTO\"" +
+            "    \"type\": \"best_fields\"" +
             "  }" +
             "}")
     Page<PostDocument> searchByKeyword(String keyword, Pageable pageable);

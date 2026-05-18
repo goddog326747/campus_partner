@@ -49,28 +49,13 @@ public class PostServiceImpl implements PostService {
         logger.info("Listing posts with page - category: {}, keyword: {}, pageNum: {}, pageSize: {}",
                 category, keyword, pageNum, pageSize);
         try {
-            List<Post> allPosts = postMapper.selectByCondition(category, keyword);
-            long total = allPosts.size();
+            int offset = (pageNum - 1) * pageSize;
+            
+            List<Post> posts = postMapper.selectPostsWithUser(category, keyword, offset, pageSize);
+            long total = postMapper.countPosts(category, keyword);
 
-            for (Post post : allPosts) {
-                if (post.getUserId() != null) {
-                    User user = userMapper.selectById(post.getUserId());
-                    if (user != null) {
-                        post.setUsername(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
-                        post.setAvatar(user.getAvatar());
-                    }
-                }
-            }
-
-            int start = (pageNum - 1) * pageSize;
-            if (start >= allPosts.size()) {
-                return PageResult.of(new ArrayList<>(), total, pageNum, pageSize);
-            }
-            int end = Math.min(start + pageSize, allPosts.size());
-            List<Post> pagePosts = allPosts.subList(start, end);
-
-            logger.info("Successfully retrieved {} posts (total: {})", pagePosts.size(), total);
-            return PageResult.of(pagePosts, total, pageNum, pageSize);
+            logger.info("Successfully retrieved {} posts (total: {})", posts.size(), total);
+            return PageResult.of(posts, total, pageNum, pageSize);
         } catch (Exception e) {
             logger.error("Error listing posts with page", e);
             throw e;

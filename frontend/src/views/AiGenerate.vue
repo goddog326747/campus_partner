@@ -72,10 +72,29 @@
           <el-icon><MagicStick /></el-icon>
           <span>开始生成</span>
         </button>
-        <button class="agent-btn" @click="startAgentGenerate" :disabled="!form.topic.trim()">
-          <span class="agent-icon">🤖</span>
-          <span>Agent 模式</span>
-        </button>
+        <div class="agent-section">
+          <label class="agent-label">Agent 模式</label>
+          <div class="agent-modes">
+            <button class="agent-mode-btn react-btn" :class="{ active: agentModeType === 'REACT' }" @click="agentModeType = 'REACT'">
+              <span class="mode-icon">⚡</span>
+              <div class="mode-info">
+                <span class="mode-name">ReAct</span>
+                <span class="mode-desc">工具调用+质量检查</span>
+              </div>
+            </button>
+            <button class="agent-mode-btn plan-btn" :class="{ active: agentModeType === 'PLAN' }" @click="agentModeType = 'PLAN'">
+              <span class="mode-icon">📋</span>
+              <div class="mode-info">
+                <span class="mode-name">Plan</span>
+                <span class="mode-desc">规划执行+快速生成</span>
+              </div>
+            </button>
+          </div>
+          <button class="agent-run-btn" @click="startAgentGenerate" :disabled="!form.topic.trim()">
+            <span class="agent-icon">🤖</span>
+            <span>启动 Agent</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -109,70 +128,117 @@
       </div>
 
       <div class="agent-steps-card">
-        <div class="agent-step" :class="{ active: agentStep >= 1, done: agentStep > 1, current: agentStep === 1 }">
-          <div class="step-indicator">
-            <div class="step-icon-wrap">
-              <span v-if="agentStep > 1" class="step-check">✓</span>
-              <span v-else class="step-num">1</span>
+        <template v-if="agentModeType === 'REACT'">
+          <div class="agent-step" :class="{ active: agentStep >= 1, done: agentStep > 1, current: agentStep === 1 }">
+            <div class="step-indicator">
+              <div class="step-icon-wrap">
+                <span v-if="agentStep > 1" class="step-check">✓</span>
+                <span v-else class="step-num">1</span>
+              </div>
+              <div class="step-connector" :class="{ filled: agentStep > 1 }"></div>
             </div>
-            <div class="step-connector" :class="{ filled: agentStep > 1 }"></div>
+            <div class="step-body">
+              <div class="step-title">信息收集</div>
+              <div class="step-desc">搜索热门话题、相关帖子、用户风格</div>
+              <div class="step-status" v-if="agentStep === 1">
+                <span class="status-dot blinking"></span>
+                进行中...
+              </div>
+              <div class="step-status done-status" v-else-if="agentStep > 1">
+                <span class="status-dot done-dot"></span>
+                已完成
+              </div>
+            </div>
           </div>
-          <div class="step-body">
-            <div class="step-title">信息收集</div>
-            <div class="step-desc">搜索热门话题、相关帖子、用户风格</div>
-            <div class="step-status" v-if="agentStep === 1">
-              <span class="status-dot blinking"></span>
-              进行中...
-            </div>
-            <div class="step-status done-status" v-else-if="agentStep > 1">
-              <span class="status-dot done-dot"></span>
-              已完成
-            </div>
-          </div>
-        </div>
 
-        <div class="agent-step" :class="{ active: agentStep >= 2, done: agentStep > 2, current: agentStep === 2 }">
-          <div class="step-indicator">
-            <div class="step-icon-wrap">
-              <span v-if="agentStep > 2" class="step-check">✓</span>
-              <span v-else class="step-num">2</span>
+          <div class="agent-step" :class="{ active: agentStep >= 2, done: agentStep > 2, current: agentStep === 2 }">
+            <div class="step-indicator">
+              <div class="step-icon-wrap">
+                <span v-if="agentStep > 2" class="step-check">✓</span>
+                <span v-else class="step-num">2</span>
+              </div>
+              <div class="step-connector" :class="{ filled: agentStep > 2 }"></div>
             </div>
-            <div class="step-connector" :class="{ filled: agentStep > 2 }"></div>
+            <div class="step-body">
+              <div class="step-title">内容生成</div>
+              <div class="step-desc">基于收集信息创作高质量帖子</div>
+              <div class="step-status" v-if="agentStep === 2">
+                <span class="status-dot blinking"></span>
+                进行中...
+              </div>
+              <div class="step-status done-status" v-else-if="agentStep > 2">
+                <span class="status-dot done-dot"></span>
+                已完成
+              </div>
+            </div>
           </div>
-          <div class="step-body">
-            <div class="step-title">内容生成</div>
-            <div class="step-desc">基于收集信息创作高质量帖子</div>
-            <div class="step-status" v-if="agentStep === 2">
-              <span class="status-dot blinking"></span>
-              进行中...
-            </div>
-            <div class="step-status done-status" v-else-if="agentStep > 2">
-              <span class="status-dot done-dot"></span>
-              已完成
-            </div>
-          </div>
-        </div>
 
-        <div class="agent-step" :class="{ active: agentStep >= 3, done: agentStep > 3, current: agentStep === 3 }">
-          <div class="step-indicator">
-            <div class="step-icon-wrap">
-              <span v-if="agentStep > 3" class="step-check">✓</span>
-              <span v-else class="step-num">3</span>
+          <div class="agent-step" :class="{ active: agentStep >= 3, done: agentStep > 3, current: agentStep === 3 }">
+            <div class="step-indicator">
+              <div class="step-icon-wrap">
+                <span v-if="agentStep > 3" class="step-check">✓</span>
+                <span v-else class="step-num">3</span>
+              </div>
+            </div>
+            <div class="step-body">
+              <div class="step-title">质量检查</div>
+              <div class="step-desc">验证内容质量，不达标则优化重写</div>
+              <div class="step-status" v-if="agentStep === 3">
+                <span class="status-dot blinking"></span>
+                进行中...
+              </div>
+              <div class="step-status done-status" v-else-if="agentStep > 3">
+                <span class="status-dot done-dot"></span>
+                已完成
+              </div>
             </div>
           </div>
-          <div class="step-body">
-            <div class="step-title">质量检查</div>
-            <div class="step-desc">验证内容质量，不达标则优化重写</div>
-            <div class="step-status" v-if="agentStep === 3">
-              <span class="status-dot blinking"></span>
-              进行中...
+        </template>
+
+        <template v-else>
+          <div class="agent-step" :class="{ active: agentStep >= 1, done: agentStep > 1, current: agentStep === 1 }">
+            <div class="step-indicator">
+              <div class="step-icon-wrap">
+                <span v-if="agentStep > 1" class="step-check">✓</span>
+                <span v-else class="step-num">1</span>
+              </div>
+              <div class="step-connector" :class="{ filled: agentStep > 1 }"></div>
             </div>
-            <div class="step-status done-status" v-else-if="agentStep > 3">
-              <span class="status-dot done-dot"></span>
-              已完成
+            <div class="step-body">
+              <div class="step-title">规划分析</div>
+              <div class="step-desc">分析主题，规划内容结构</div>
+              <div class="step-status" v-if="agentStep === 1">
+                <span class="status-dot blinking"></span>
+                进行中...
+              </div>
+              <div class="step-status done-status" v-else-if="agentStep > 1">
+                <span class="status-dot done-dot"></span>
+                已完成
+              </div>
             </div>
           </div>
-        </div>
+
+          <div class="agent-step" :class="{ active: agentStep >= 2, done: agentStep > 2, current: agentStep === 2 }">
+            <div class="step-indicator">
+              <div class="step-icon-wrap">
+                <span v-if="agentStep > 2" class="step-check">✓</span>
+                <span v-else class="step-num">2</span>
+              </div>
+            </div>
+            <div class="step-body">
+              <div class="step-title">内容生成</div>
+              <div class="step-desc">按规划快速生成帖子内容</div>
+              <div class="step-status" v-if="agentStep === 2">
+                <span class="status-dot blinking"></span>
+                进行中...
+              </div>
+              <div class="step-status done-status" v-else-if="agentStep > 2">
+                <span class="status-dot done-dot"></span>
+                已完成
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -256,6 +322,7 @@ const form = reactive({
 const generating = ref(false)
 const generated = ref(false)
 const agentMode = ref(false)
+const agentModeType = ref('REACT')
 const agentStep = ref(0)
 const agentTimer = ref(0)
 let agentTimerInterval = null
@@ -335,7 +402,8 @@ const startAgentGenerate = async () => {
 
   agentTimerInterval = setInterval(() => { agentTimer.value++ }, 1000)
   agentStepInterval = setInterval(() => {
-    if (agentStep.value < 3) agentStep.value++
+    const maxStep = agentModeType.value === 'REACT' ? 3 : 2
+    if (agentStep.value < maxStep) agentStep.value++
   }, 6000)
 
   try {
@@ -344,13 +412,14 @@ const startAgentGenerate = async () => {
       category: form.category || undefined,
       style: form.style || undefined,
       requirements: form.requirements || undefined,
-      conversationId: conversationId.value
+      conversationId: conversationId.value,
+      mode: agentModeType.value
     }
 
     const res = await aiAgentGeneratePost(requestData)
 
     clearAgentTimers()
-    agentStep.value = 3
+    agentStep.value = agentModeType.value === 'REACT' ? 3 : 2
 
     setTimeout(() => {
       if (res.code === 200 && res.data) {
@@ -735,6 +804,104 @@ const useResult = () => {
   padding: 0 16px;
 }
 
+.agent-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.agent-section .agent-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.agent-modes {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.agent-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  background: var(--bg-page);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: left;
+}
+
+.agent-mode-btn:hover {
+  border-color: rgba(118, 75, 162, 0.3);
+}
+
+.agent-mode-btn.active {
+  border-color: #764ba2;
+  background: rgba(118, 75, 162, 0.06);
+}
+
+.agent-mode-btn .mode-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.agent-mode-btn .mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agent-mode-btn .mode-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.agent-mode-btn .mode-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.agent-mode-btn.active .mode-name {
+  color: #764ba2;
+}
+
+.agent-run-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.agent-run-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(118, 75, 162, 0.4);
+}
+
+.agent-run-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .generate-btn {
   width: 100%;
   padding: 14px 24px;
@@ -760,38 +927,6 @@ const useResult = () => {
 .generate-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.agent-btn {
-  width: 100%;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
-  border-radius: 28px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.agent-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(118, 75, 162, 0.4);
-}
-
-.agent-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.agent-icon {
-  font-size: 18px;
 }
 
 .generating-section {

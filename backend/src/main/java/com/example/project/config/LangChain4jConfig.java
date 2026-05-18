@@ -78,8 +78,21 @@ public class LangChain4jConfig {
     }
 
     @Bean
-    @Qualifier("proStreamingModel")
-    public StreamingChatLanguageModel streamingChatLanguageModel() {
+    @Qualifier("flashStreamingModel")
+    public StreamingChatLanguageModel flashStreamingChatLanguageModel() {
+        return OpenAiStreamingChatModel.builder()
+                .apiKey(apiKey)
+                .baseUrl(extractBaseUrl(apiUrl))
+                .modelName(flashModelName)
+                .timeout(Duration.ofSeconds(60))
+                .temperature(0.7)
+                .maxTokens(2000)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("glmStreamingModel")
+    public StreamingChatLanguageModel glmStreamingChatLanguageModel() {
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(extractBaseUrl(apiUrl))

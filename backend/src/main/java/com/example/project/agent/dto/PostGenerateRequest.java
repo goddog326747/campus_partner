@@ -19,4 +19,6 @@ public class PostGenerateRequest {
     private String conversationId;
     
     private boolean publish = false;
+
+    private String mode = "REACT";
 }
